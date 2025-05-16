@@ -1,118 +1,93 @@
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import { TouchableOpacity, Text, StyleSheet, View, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { COLORS, FONTS, SIZES } from '@/constants/Colors';
+import { Ionicons } from '@expo/vector-icons';
+import type { ViewStyle, TextStyle } from 'react-native';
 
-type ButtonProps = {
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
+
+type CollapsibleProps = {
   title: string;
-  onPress: () => void;
-  type?: 'primary' | 'secondary' | 'outline';
-  size?: 'small' | 'medium' | 'large';
-  loading?: boolean;
-  disabled?: boolean;
+  children: React.ReactNode;
+  initiallyExpanded?: boolean;
   style?: any;
+  titleStyle?: any;
+  contentStyle?: any;
 };
 
-export default function Button({
+export default function Collapsible({
   title,
-  onPress,
-  type = 'primary',
-  size = 'medium',
-  loading = false,
-  disabled = false,
+  children,
+  initiallyExpanded = false,
   style,
-}: ButtonProps) {
-  const getBackgroundColor = () => {
-    if (disabled) return COLORS.textLight;
-    switch (type) {
-      case 'primary':
-        return COLORS.primary;
-      case 'secondary':
-        return COLORS.secondary;
-      case 'outline':
-        return 'transparent';
-      default:
-        return COLORS.primary;
-    }
-  };
+  titleStyle,
+  contentStyle,
+}: CollapsibleProps) {
+  const [expanded, setExpanded] = useState(initiallyExpanded);
 
-  const getTextColor = () => {
-    if (disabled) return COLORS.background;
-    switch (type) {
-      case 'primary':
-        return COLORS.background;
-      case 'secondary':
-        return COLORS.text;
-      case 'outline':
-        return COLORS.primary;
-      default:
-        return COLORS.background;
-    }
-  };
-
-  const getBorderColor = () => {
-    if (disabled) return COLORS.textLight;
-    switch (type) {
-      case 'outline':
-        return COLORS.primary;
-      default:
-        return 'transparent';
-    }
-  };
-
-  const getPadding = () => {
-    switch (size) {
-      case 'small':
-        return 10;
-      case 'medium':
-        return 14;
-      case 'large':
-        return 18;
-      default:
-        return 14;
-    }
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(!expanded);
   };
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.button,
-        {
-          backgroundColor: getBackgroundColor(),
-          borderColor: getBorderColor(),
-          borderWidth: type === 'outline' ? 1 : 0,
-          paddingVertical: getPadding(),
-          opacity: disabled ? 0.7 : 1,
-        },
-        style,
-      ]}
-      onPress={onPress}
-      disabled={disabled || loading}>
-      {loading ? (
-        <ActivityIndicator color={getTextColor()} />
-      ) : (
-        <Text
-          style={[
-            styles.text,
-            {
-              color: getTextColor(),
-              fontSize: size === 'small' ? 14 : size === 'large' ? 18 : 16,
-            },
-          ]}>
-          {title}
-        </Text>
+    <View style={[styles.container, style]}>
+      <TouchableOpacity style={styles.titleContainer} onPress={toggleExpand}>
+        <Text style={[styles.title, titleStyle]}>{title}</Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color={COLORS.textLight}
+        />
+      </TouchableOpacity>
+      
+      {expanded && (
+        <View style={[styles.content, contentStyle]}>
+          {children}
+        </View>
       )}
-    </TouchableOpacity>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
-    borderRadius: SIZES.radius,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
+
+const styles = StyleSheet.create<{
+  container: ViewStyle;
+  titleContainer: ViewStyle;
+  title: TextStyle;
+  content: ViewStyle;
+}>({
+  container: {
+    backgroundColor: COLORS.card,
+    borderRadius: SIZES.smallRadius,
+    marginBottom: 16,
+    overflow: 'hidden',
   },
-  text: {
-    fontWeight: '600',
+  titleContainer: {
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  title: {
+    ...(FONTS.h3
+      ? {
+          ...FONTS.h3,
+          fontWeight:
+            FONTS.h3.fontWeight === undefined
+              ? undefined
+              : (FONTS.h3.fontWeight as TextStyle['fontWeight']),
+        }
+      : {}),
+    color: COLORS.text,
+  },
+  content: {
+    padding: 16,
+    paddingTop: 0,
   },
 });
