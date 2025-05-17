@@ -1,15 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Platform, SafeAreaView } from 'react-native';
-import { useRouter, Link } from 'expo-router';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Platform, SafeAreaView, Dimensions } from 'react-native';
+import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SIZES, SHADOWS } from '@/constants/Colors';
 import { Button } from '@/components/Button';
 import { Carousel } from '@/components/Carousel';
 import { Card } from '@/components/Card';
 
-export default function HomeScreen() {
-  const router = useRouter();
+const { width } = Dimensions.get('window');
 
+export default function HomeScreen() {
   const features = [
     {
       title: 'Practice Tests',
@@ -92,12 +92,15 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Explore Features</Text>
-          <Carousel 
-            data={carouselItems} 
-            height={220} 
-            autoPlay
-            autoPlayInterval={5000}
-          />
+          <View style={styles.carouselContainer}>
+            <Carousel 
+              data={carouselItems} 
+              height={200} 
+              autoPlay
+              autoPlayInterval={5000}
+              showIndicator={true}
+            />
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -222,17 +225,22 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 16,
   },
+  carouselContainer: {
+    marginHorizontal: -SIZES.padding, // This extends the carousel beyond container padding
+    marginBottom: 8,
+  },
   carouselItem: {
-    width: '90%',
+    width: Math.min(320, width * 0.8), // Fixed width or 80% of screen width, whichever is smaller
     backgroundColor: COLORS.card,
     borderRadius: SIZES.radius,
     padding: SIZES.padding,
-    marginHorizontal: '5%',
-    marginVertical: 8,
-    height: 200,
-    ...SHADOWS.small,
+    marginHorizontal: 10, // Even spacing between cards
+    height: 180,
+    ...SHADOWS.medium, // Use medium shadow for more depth
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   carouselIconContainer: {
     width: 64,
@@ -241,11 +249,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(46, 91, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   carouselTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text,
     marginBottom: 8,
     textAlign: 'center',

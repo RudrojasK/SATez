@@ -1,16 +1,70 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SIZES, SHADOWS } from '@/constants/Colors';
 import { profileStats } from '@/constants/mockData';
 import { StatCard } from '@/components/StatCard';
 import { Button } from '@/components/Button';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ProfileScreen() {
+  const { user, signOut, refreshUser } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [userName, setUserName] = useState('');
+  
+  // Format the user's email to get a display name
+  useEffect(() => {
+    if (user?.email) {
+      // Extract name from email (part before @)
+      const emailName = user.email.split('@')[0];
+      // Capitalize first letter and replace dots/underscores with spaces
+      const formatted = emailName
+        .replace(/[._]/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      setUserName(formatted);
+    }
+  }, [user]);
+
   const handleSettingsPress = () => {
     // This would navigate to the settings page
     console.log('Settings pressed');
   };
+  
+  const handleSignOut = async () => {
+    setLoading(true);
+    try {
+      await signOut();
+      // The router in _layout.tsx will handle redirection to login
+    } catch (error) {
+      console.error('Error signing out:', error);
+      Alert.alert('Error signing out', 'Please try again');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const refreshUserData = async () => {
+    setLoading(true);
+    try {
+      await refreshUser();
+      Alert.alert('Success', 'User data refreshed');
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!user || loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading profile...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -18,15 +72,16 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <View style={styles.profileInfo}>
             <View style={styles.avatarContainer}>
-              <Image 
-                source={require('@/assets/images/react-logo.png')} 
-                style={styles.avatar}
-              />
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>
+                  {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                </Text>
+              </View>
               <View style={styles.statusIndicator} />
             </View>
             <View style={styles.nameContainer}>
-              <Text style={styles.name} numberOfLines={1}>{profileStats.name}</Text>
-              <Text style={styles.email} numberOfLines={1}>alex.johnson@example.com</Text>
+              <Text style={styles.name} numberOfLines={1}>{userName || 'User'}</Text>
+              <Text style={styles.email} numberOfLines={1}>{user.email}</Text>
             </View>
           </View>
         </View>
@@ -108,6 +163,26 @@ export default function ProfileScreen() {
             variant="outline"
             icon={<Ionicons name="settings-outline" size={20} color={COLORS.primary} />}
           />
+          
+          <View style={styles.buttonSpacer} />
+          
+          <Button
+            title="Refresh Data"
+            onPress={refreshUserData}
+            variant="outline"
+            icon={<Ionicons name="refresh-outline" size={20} color={COLORS.primary} />}
+          />
+          
+          <View style={styles.buttonSpacer} />
+          
+          <Button
+            title="Sign Out"
+            onPress={handleSignOut}
+            variant="outline"
+            icon={<Ionicons name="log-out-outline" size={20} color={COLORS.error} />}
+            style={styles.signOutButton}
+            textStyle={styles.signOutText}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -118,6 +193,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: COLORS.textLight,
   },
   scrollContent: {
     padding: SIZES.padding,
@@ -133,11 +219,18 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: 'relative',
   },
-  avatar: {
+  avatarPlaceholder: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   statusIndicator: {
     position: 'absolute',
@@ -249,10 +342,19 @@ const styles = StyleSheet.create({
   activityDivider: {
     height: 1,
     backgroundColor: COLORS.border,
-    marginVertical: 4,
+    marginVertical: 8,
   },
   buttonContainer: {
     marginTop: 16,
-    marginBottom: 32,
+    marginBottom: 24,
+  },
+  buttonSpacer: {
+    height: 12,
+  },
+  signOutButton: {
+    borderColor: COLORS.error,
+  },
+  signOutText: {
+    color: COLORS.error,
   },
 });
