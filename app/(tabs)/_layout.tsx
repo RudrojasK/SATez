@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Text } from 'react-native';
 import { COLORS } from '@/constants/Colors';
 
 export default function TabLayout() {
@@ -53,11 +54,25 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="tutor"
+        options={{
+          title: 'Tutor',
+          tabBarIcon: ({ color, focused }) => (
+            <Text>
+              <Ionicons name={focused ? "school" : "school-outline"} size={24} color={color} />
+            </Text>
+          ),
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
+            <Text>
+              <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
+            </Text>
           ),
           headerShown: false,
         }}

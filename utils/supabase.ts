@@ -12,7 +12,7 @@ const createCustomStorage = () => {
   if (Platform.OS === 'web') {
     // Use localStorage for web
     return {
-      setItem: (key, value) => {
+      setItem: (key: string, value: string) => {
         try {
           if (typeof window !== 'undefined') {
             window.localStorage.setItem(key, value);
@@ -22,7 +22,7 @@ const createCustomStorage = () => {
           return Promise.reject(e);
         }
       },
-      getItem: (key) => {
+      getItem: (key: string) => {
         try {
           if (typeof window !== 'undefined') {
             const value = window.localStorage.getItem(key);
@@ -33,7 +33,7 @@ const createCustomStorage = () => {
           return Promise.reject(e);
         }
       },
-      removeItem: (key) => {
+      removeItem: (key: string) => {
         try {
           if (typeof window !== 'undefined') {
             window.localStorage.removeItem(key);
