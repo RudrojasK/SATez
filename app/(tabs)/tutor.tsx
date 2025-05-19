@@ -30,7 +30,7 @@ export default function TutorScreen() {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState<string>(GROQ_API_KEY);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(GROQ_API_KEY === "YOUR_GROQ_API_KEY");
+  const [showApiKeyInput, setShowApiKeyInput] = useState(GROQ_API_KEY === "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");
   const [showFavorites, setShowFavorites] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
