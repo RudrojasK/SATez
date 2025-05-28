@@ -1,56 +1,36 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  ScrollView, 
-  KeyboardAvoidingView, 
-  Platform,
-  ActivityIndicator,
-  Alert,
-  SafeAreaView,
-  Keyboard
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SIZES, SHADOWS } from '@/constants/Colors';
 import { ChatMessage } from '@/components/ChatMessage';
 import { FavoriteResponsesModal } from '@/components/FavoriteResponsesModal';
-import { 
-  Message, 
-  fetchGroqCompletion, 
-  createInitialMessages,
-  GROQ_API_KEY 
+import { COLORS, SHADOWS, SIZES } from '@/constants/Colors';
+import {
+    createInitialMessages,
+    fetchGroqCompletion,
+    Message
 } from '@/utils/groq';
-import { ApiKeyStorage, ChatHistoryStorage } from '@/utils/storage';
+import { ChatHistoryStorage } from '@/utils/storage';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 export default function TutorScreen() {
   const [messages, setMessages] = useState<Message[]>(createInitialMessages());
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState<string>(GROQ_API_KEY);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(GROQ_API_KEY === "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");
   const [showFavorites, setShowFavorites] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
-  
-  // Load saved API key on component mount
-  useEffect(() => {
-    const loadApiKey = async () => {
-      try {
-        const savedApiKey = await ApiKeyStorage.getGroqApiKey();
-        if (savedApiKey) {
-          setApiKey(savedApiKey);
-          setShowApiKeyInput(false);
-        }
-      } catch (error) {
-        console.error('Failed to load API key:', error);
-      }
-    };
-    
-    loadApiKey();
-  }, []);
   
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -89,24 +69,19 @@ export default function TutorScreen() {
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
     
-    // Check if API key is set
-    const storedApiKey = await ApiKeyStorage.getGroqApiKey();
-    const currentApiKey = storedApiKey || apiKey;
-    
-    if (currentApiKey === "YOUR_GROQ_API_KEY") {
-      Alert.alert(
-        "API Key Required",
-        "Please set your GROQ API key before sending messages.",
-        [{ text: "OK", onPress: () => setShowApiKeyInput(true) }]
-      );
-      return;
-    }
-    
     // Create user message
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
       content: inputText.trim(),
+      timestamp: Date.now()
+    };
+    
+    // Add a reinforcement message to ensure quiz examples
+    const quizReminderMessage: Message = {
+      id: 'quiz-reminder-' + Date.now().toString(),
+      role: 'system',
+      content: 'Remember to include a quiz example in your response using the <quiz-example> JSON format. The quiz should relate to the student\'s question and help them practice similar concepts.',
       timestamp: Date.now()
     };
     
@@ -119,9 +94,9 @@ export default function TutorScreen() {
     setIsLoading(true);
     
     try {
-      // Call GROQ API
+      // Call GROQ API with the reminder message
       const response = await fetchGroqCompletion({
-        messages: [...messages, userMessage],
+        messages: [...messages, quizReminderMessage, userMessage],
       });
       
       // Add assistant response to messages
@@ -132,44 +107,11 @@ export default function TutorScreen() {
       // Show error message
       Alert.alert(
         "Error",
-        "Failed to get a response from the tutor. Please check your API key and network connection.",
+        "Failed to get a response from the tutor. Please check your network connection and try again.",
         [{ text: "OK" }]
       );
     } finally {
       setIsLoading(false);
-    }
-  };
-  
-  const handleSaveApiKey = async () => {
-    if (!apiKey || apiKey.trim() === "YOUR_GROQ_API_KEY") {
-      Alert.alert(
-        "Invalid API Key",
-        "Please enter a valid GROQ API key.",
-        [{ text: "OK" }]
-      );
-      return;
-    }
-    
-    try {
-      // Save API key to persistent storage
-      await ApiKeyStorage.saveGroqApiKey(apiKey);
-      
-      // Hide API key input
-      setShowApiKeyInput(false);
-      
-      // Display a success message
-      Alert.alert(
-        "API Key Saved",
-        "Your GROQ API key has been saved securely. You won't need to enter it again.",
-        [{ text: "OK" }]
-      );
-    } catch (error) {
-      console.error('Failed to save API key:', error);
-      Alert.alert(
-        "Error",
-        "Failed to save your API key. Please try again.",
-        [{ text: "OK" }]
-      );
     }
   };
   
@@ -201,133 +143,95 @@ export default function TutorScreen() {
         <Text style={styles.subtitle}>Get help with your SAT prep</Text>
         <TouchableOpacity 
           style={styles.settingsButton}
-          onPress={() => setShowApiKeyInput(true)}
-        >
-          <Text>
-            <Ionicons name="key-outline" size={20} color={COLORS.textLight} />
-          </Text>
-        </TouchableOpacity>        <TouchableOpacity 
-          style={styles.settingsButton}
           onPress={handleShowFavorites}
         >
-          <Text>
-            <Ionicons name="bookmark-outline" size={20} color={COLORS.textLight} />
-          </Text>
+          <Ionicons name="bookmark-outline" size={20} color={COLORS.textLight} />
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.newChatButton}
           onPress={handleStartNewConversation}
         >
-          <Text>
-            <Ionicons name="add-circle-outline" size={20} color={COLORS.textLight} />
-          </Text>
+          <Ionicons name="add-circle-outline" size={20} color={COLORS.textLight} />
         </TouchableOpacity>
       </View>
-        {/* Favorites Modal */}
+      
+      {/* Favorites Modal */}
       <FavoriteResponsesModal
         visible={showFavorites}
         onClose={() => setShowFavorites(false)}
       />
-      {showApiKeyInput ? (
-        <View style={styles.apiKeyContainer}>
-          <Text style={styles.apiKeyLabel}>Enter your GROQ API Key:</Text>
-          <TextInput
-            style={styles.apiKeyInput}
-            value={apiKey}
-            onChangeText={setApiKey}
-            placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
-            placeholderTextColor={COLORS.textLight}
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-          />
-          <TouchableOpacity 
-            style={styles.apiKeySaveButton}
-            onPress={handleSaveApiKey}
-          >
-            <Text style={styles.apiKeySaveButtonText}>Save API Key</Text>
-          </TouchableOpacity>
-          <Text style={styles.apiKeyHelpText}>
-            Get your API key from groq.com
-          </Text>
-        </View>
-      ) : (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.chatContainer}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.chatContainer}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >        <ScrollView
+          ref={scrollViewRef}
+          style={styles.messagesContainer}
+          contentContainerStyle={styles.messagesContent}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
         >
-          <ScrollView
-            ref={scrollViewRef}
-            style={styles.messagesContainer}
-            contentContainerStyle={styles.messagesContent}
-            showsVerticalScrollIndicator={true}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Welcome header */}
-            <View style={styles.welcomeContainer}>
-              <View style={styles.welcomeIconContainer}>
-                <Text>
-                  <Ionicons name="school" size={32} color={COLORS.primary} />
-                </Text>
-              </View>
-              <Text style={styles.welcomeTitle}>SAT Tutor</Text>
-              <Text style={styles.welcomeText}>
-                Ask questions about the SAT, get help with practice problems, or get study tips.
-              </Text>
+          {/* Welcome header */}
+          <View style={styles.welcomeContainer}>
+            <View style={styles.welcomeIconContainer}>
+              <Ionicons name="school" size={32} color={COLORS.primary} />
             </View>
-            
-            {/* Chat messages */}
-            {visibleMessages.map((message, index) => (
-              <ChatMessage 
-                key={message.id} 
-                message={message} 
-                isLastMessage={index === visibleMessages.length - 1}
-              />
-            ))}
-            
-            {/* Loading indicator */}
-            {isLoading && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
-                <Text style={styles.loadingText}>Tutor is thinking...</Text>
-              </View>
-            )}
-          </ScrollView>
-          
-          {/* Input area */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder="Ask your tutor anything..."
-              placeholderTextColor={COLORS.textLight}
-              multiline
-              returnKeyType="send"
-              blurOnSubmit={false}
-              onSubmitEditing={Keyboard.dismiss}
-            />
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                !inputText.trim() && styles.sendButtonDisabled
-              ]}
-              onPress={handleSendMessage}
-              disabled={!inputText.trim() || isLoading}
-            >
-              <Text>
-                <Ionicons
-                  name="send"
-                  size={24}
-                  color={!inputText.trim() || isLoading ? COLORS.textLight : "white"}
-                />
-              </Text>
-            </TouchableOpacity>
+            <Text style={styles.welcomeTitle}>SAT Tutor</Text>
+            <Text style={styles.welcomeText}>
+              Ask questions about the SAT, get help with practice problems, or get study tips.
+            </Text>
           </View>
-        </KeyboardAvoidingView>
-      )}
-        {/* Favorite Responses Modal */}
+          
+          {/* Chat messages */}
+          {visibleMessages.map((message, index) => (
+            <ChatMessage 
+              key={message.id} 
+              message={message} 
+              isLastMessage={index === visibleMessages.length - 1}
+            />
+          ))}
+          
+          {/* Loading indicator */}
+          {isLoading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.loadingText}>Tutor is thinking...</Text>
+            </View>
+          )}
+        </ScrollView>
+        
+        {/* Input area */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Ask your tutor anything..."
+            placeholderTextColor={COLORS.textLight}
+            multiline
+            returnKeyType="send"
+            blurOnSubmit={false}
+            onSubmitEditing={Keyboard.dismiss}
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              !inputText.trim() && styles.sendButtonDisabled
+            ]}
+            onPress={handleSendMessage}
+            disabled={!inputText.trim() || isLoading}
+          >
+            <Ionicons
+              name="send"
+              size={24}
+              color={!inputText.trim() || isLoading ? COLORS.textLight : "white"}
+            />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+      
+      {/* Favorite Responses Modal */}
       <FavoriteResponsesModal 
         visible={showFavorites}
         onClose={() => setShowFavorites(false)}
