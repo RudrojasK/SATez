@@ -1,15 +1,14 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Platform, SafeAreaView, Dimensions } from 'react-native';
-import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, SIZES, SHADOWS } from '@/constants/Colors';
-import { Button } from '@/components/Button';
-import { Carousel } from '@/components/Carousel';
-import { Card } from '@/components/Card';
+import { Link } from 'expo-router';
+import React from 'react';
+import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Card } from '../../components/Card';
+import { Carousel } from '../../components/Carousel';
+import { COLORS, SHADOWS, SIZES } from '../../constants/Colors';
 
 const { width } = Dimensions.get('window');
 
-export default function HomeScreen() {
+export default function Index() {
   const features = [
     {
       title: 'Practice Tests',
@@ -83,11 +82,9 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </Link>
           </View>
-          <Image 
-            source={require('@/assets/images/partial-react-logo.png')}
-            style={styles.heroImage}
-            resizeMode="contain"
-          />
+          <View style={styles.heroIconContainer}>
+            <Ionicons name="school-outline" size={100} color="rgba(255, 255, 255, 0.3)" />
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -206,15 +203,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
-    marginRight: 4, // For platforms that don't support gap
-  },
-  heroImage: {
-    position: 'absolute',
-    bottom: -20,
-    right: -20,
-    width: 150,
-    height: 150,
-    opacity: 0.3,
+    marginRight: 4,
   },
   section: {
     marginBottom: 24,
@@ -226,17 +215,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   carouselContainer: {
-    marginHorizontal: -SIZES.padding, // This extends the carousel beyond container padding
+    marginHorizontal: -SIZES.padding,
     marginBottom: 8,
   },
   carouselItem: {
-    width: Math.min(320, width * 0.8), // Fixed width or 80% of screen width, whichever is smaller
+    width: Math.min(320, width * 0.8),
     backgroundColor: COLORS.card,
     borderRadius: SIZES.radius,
     padding: SIZES.padding,
-    marginHorizontal: 10, // Even spacing between cards
+    marginHorizontal: 10,
     height: 180,
-    ...SHADOWS.medium, // Use medium shadow for more depth
+    ...SHADOWS.medium,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -363,5 +352,11 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '600',
     fontSize: 16,
+  },
+  heroIconContainer: {
+    position: 'absolute',
+    bottom: -20,
+    right: -20,
+    opacity: 0.3,
   },
 });
