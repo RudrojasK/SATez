@@ -1,16 +1,15 @@
-import { Platform } from 'react-native';
 
 export const COLORS = {
   primary: '#2E5BFF',       // Blue
-  secondary: '#FFD33A',     // Yellow
+  secondary: '#FFD60A',     // Yellow
   accent: '#FF6B6B',        // Accent for important actions
-  background: '#FFFFFF',    // White background
-  card: '#F4F6FA',          // Light gray for cards
-  text: '#1A1A2E',          // Near black for text
-  textLight: '#8F9BB3',     // Gray for secondary text
+  background: '#F7F8FA',    // White background
+  card: '#FFFFFF',          // Light gray for cards
+  text: '#1C1C1E',          // Near black for text
+  textLight: '#8E8E93',     // Gray for secondary text
   success: '#00C48C',       // Green for correct answers
   error: '#FF647C',         // Red for incorrect answers
-  border: '#E4E9F2',        // Light gray for borders
+  border: '#E5E5EA',        // Light gray for borders
 };
 
 export const FONTS = {
@@ -44,34 +43,18 @@ export const SIZES = {
 };
 
 export const SHADOWS = {
-  small: Platform.select({
-    web: {
-      boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
-    },
-    default: {
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 2,
-    },
-  }),
-  medium: Platform.select({
-    web: {
-      boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.15)',
-    },
-    default: {
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 4,
-      },
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-  }),
+  small: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  medium: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
 };

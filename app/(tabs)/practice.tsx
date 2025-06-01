@@ -5,6 +5,12 @@ import { practiceTests } from '@/constants/mockData';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { PracticeCard } from '../../components/PracticeCard';
+import { COLORS, SHADOWS, SIZES } from '../../constants/Colors';
+import { practiceTests } from '../../constants/mockData';
 
 type PracticeCategory = 'full' | 'drill' | 'quiz';
 
@@ -15,7 +21,6 @@ export default function PracticeScreen() {
   const filteredTests = practiceTests.filter(test => test.type === activeTab);
 
   const handleCardPress = (id: string) => {
-    // Navigate to quiz screen with the selected quiz ID
     router.push(`/quiz?id=${id}`);
   };
 

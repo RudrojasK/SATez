@@ -1,33 +1,27 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle, TouchableOpacity } from 'react-native';
-import { COLORS, SHADOWS, SIZES } from '@/constants/Colors';
+import { StyleSheet, View, ViewStyle } from 'react-native';
+import { COLORS, SHADOWS, SIZES } from '../constants/Colors';
 
 interface CardProps {
   children: React.ReactNode;
   style?: ViewStyle;
-  onPress?: () => void;
 }
 
-export const Card = ({ children, style, onPress }: CardProps) => {
-  const CardComponent = onPress ? TouchableOpacity : View;
-  
+export function Card({ children, style }: CardProps) {
   return (
-    <CardComponent 
-      style={[styles.card, style]} 
-      onPress={onPress}
-      activeOpacity={onPress ? 0.7 : 1}
-    >
+    <View style={[styles.card, style]}>
       {children}
-    </CardComponent>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: SIZES.radius,
     padding: SIZES.padding,
-    marginBottom: 12,
-    ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.medium,
   },
 }); 
