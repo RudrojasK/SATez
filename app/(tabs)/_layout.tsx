@@ -56,6 +56,20 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="tutor"
+        options={{
+          title: 'Tutor',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'school' : 'school-outline'} 
+              size={24} 
+              color={color} 
+            />
+          ),
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

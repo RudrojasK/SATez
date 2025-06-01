@@ -55,98 +55,99 @@ export const practiceTests = [
     },
   ];
   
-  export const resources = [
-    {
-      id: '1',
-      title: 'Essential SAT Strategies',
-      description: 'Top strategies to improve your score fast',
-      image: require('../assets/images/react-logo.png'),
-      category: 'tips',
-      content: {
-        overview: 'Master the fundamental strategies that can help boost your SAT score quickly. These proven techniques focus on test-taking skills and strategic approaches to different question types.',
-        keyPoints: [
-          'Prioritize questions based on difficulty',
-          'Use the process of elimination effectively',
-          'Manage your time with the "2-pass" approach',
-          'Know when to guess strategically',
-          'Focus on high-yield content areas'
-        ],
-        details: 'The SAT rewards strategic test-taking as much as content knowledge. By learning to identify patterns in questions and implementing systematic approaches to each section, you can significantly improve your score even without learning additional content.'
-      }
-    },
-    {
-      id: '2',
-      title: 'Time Management Tips',
-      description: 'How to manage your time during the test',
-      image: require('../assets/images/react-logo.png'),
-      category: 'tips',
-      content: {
-        overview: 'Learn how to allocate your time efficiently during the SAT to maximize your score. Time management can be the difference between completing all questions and leaving points on the table.',
-        keyPoints: [
-          'Track time per section using benchmarks',
-          'Skip difficult questions and return later',
-          'Spend no more than 1 minute per question initially',
-          'Reserve 5 minutes for review at the end',
-          'Practice with timed conditions regularly'
-        ],
-        details: 'Effective time management starts with understanding how much time to allocate to each question type. The reading section requires different pacing than the math sections. Practice identifying which questions will take you longer and learn when to move on.'
-      }
-    },
-    {
-      id: '3',
-      title: 'Top 100 SAT Vocabulary Words',
-      description: 'Most frequently appearing words on the test',
-      image: require('../assets/images/react-logo.png'),
-      category: 'vocabulary',
-      content: {
-        overview: 'Expand your vocabulary with the most commonly tested words on the SAT. While the current SAT focuses less on obscure vocabulary than previous versions, understanding these key terms will still improve your reading and writing scores.',
-        keyPoints: [
-          'Focus on words with multiple meanings',
-          'Learn words in context rather than isolation',
-          'Group words by themes or topics',
-          'Review frequently confusing word pairs',
-          'Practice applying vocabulary in sentence completion'
-        ],
-        details: 'A strong vocabulary helps not only with direct vocabulary questions but also with reading comprehension and writing clarity. The SAT commonly features words with subtle meanings that can change the entire meaning of a passage.'
-      }
-    },
-    {
-      id: '4',
-      title: 'Math Formulas Cheat Sheet',
-      description: 'All the formulas you need to memorize',
-      image: require('../assets/images/react-logo.png'),
-      category: 'math',
-      content: {
-        overview: 'A comprehensive collection of essential math formulas you need to know for the SAT. While some formulas are provided on the test, knowing all of these will save you valuable time.',
-        keyPoints: [
-          'Algebra: quadratic formula, slope-intercept form',
-          'Geometry: area, volume, and perimeter formulas',
-          'Trigonometry: sine, cosine, and tangent relationships',
-          'Statistics: mean, median, mode, standard deviation',
-          'Special right triangles and circle theorems'
-        ],
-        details: 'The SAT math section tests your ability to apply these formulas in various contexts. Understanding not just the formula but when and how to apply it will significantly improve your math score. Practice recognizing which formula to use based on the question wording.'
-      }
-    },
-    {
-      id: '5',
-      title: 'Grammar Rules to Remember',
-      description: 'Common grammar mistakes to avoid',
-      image: require('../assets/images/react-logo.png'),
-      category: 'tips',
-      content: {
-        overview: 'Master the essential grammar rules that are frequently tested on the SAT. The writing section heavily focuses on these fundamental principles of English grammar and usage.',
-        keyPoints: [
-          'Subject-verb agreement in complex sentences',
-          'Pronoun clarity and consistency',
-          'Punctuation rules for commas, semicolons, and colons',
-          'Parallel structure in lists and comparisons',
-          'Modifier placement and dangling modifiers'
-        ],
-        details: 'Grammar questions on the SAT follow predictable patterns. Learning to recognize common error types will help you quickly identify issues in sentences. Focus on understanding the rule behind each correction rather than just memorizing examples.'
-      }
-    },
-  ];
+export const resources = [
+  {
+    id: '1',
+    title: 'Essential SAT Strategies',
+    description: 'Top strategies to quickly boost your SAT score.',
+    image: require('../assets/images/react-logo.png'),
+    category: 'tips',
+    content: {
+      overview: 'Develop powerful strategies designed to boost your SAT scores quickly by improving test-taking efficiency and accuracy. These comprehensive tactics are applicable across all sections of the exam.',
+      keyPoints: [
+        'Prioritize questions by difficulty to ensure maximum points.',
+        'Use elimination effectively to improve your guessing accuracy.',
+        'Adopt the "two-pass" method: answer easy questions first, then return to challenging ones.',
+        'Guess intelligently; no penalties for wrong answers mean educated guessing helps.',
+        'Focus on mastering high-frequency SAT topics first.'
+      ],
+      details: 'The SAT assesses strategic thinking alongside academic knowledge. Practicing strategic approaches—such as understanding question patterns, efficiently narrowing choices, and applying systematic techniques—allows you to increase your scores even without extensive content review. Regular practice tests using these strategies are key to solidifying these skills.'
+    }
+  },
+  {
+    id: '2',
+    title: 'Advanced Time Management Tips',
+    description: 'Optimize your timing to improve your performance on test day.',
+    image: require('../assets/images/react-logo.png'),
+    category: 'tips',
+    content: {
+      overview: 'Master advanced time management methods designed specifically for the SAT. Efficient pacing can drastically improve your performance by maximizing the number of questions you accurately complete.',
+      keyPoints: [
+        'Set clear time benchmarks for each test section (e.g., 13 minutes per reading passage).',
+        'Quickly skip challenging questions, marking them clearly for review later.',
+        'Initially spend no more than 1 minute per question to ensure coverage.',
+        'Always reserve at least 5-7 minutes for review and second-pass checks.',
+        'Conduct weekly timed practice sessions to build a reliable internal clock.'
+      ],
+      details: 'Efficient SAT time management involves developing a strong sense of pacing specific to each test section. Recognize quickly which questions demand extra time, and don’t hesitate to skip temporarily. Regular timed practice tests will help internalize effective pacing strategies, reducing stress and improving your confidence on test day.'
+    }
+  },
+  {
+    id: '3',
+    title: 'Top 100 SAT Vocabulary Words Explained',
+    description: 'In-depth explanations of high-frequency SAT vocabulary words.',
+    image: require('../assets/images/react-logo.png'),
+    category: 'vocabulary',
+    content: {
+      overview: 'Enhance your SAT score by mastering the top 100 vocabulary words commonly tested on the exam. These words frequently appear in reading passages and sentence completions, making vocabulary practice essential.',
+      keyPoints: [
+        'Focus on words with multiple meanings or nuanced definitions.',
+        'Learn words within sentence contexts rather than isolated definitions.',
+        'Group words by related themes or topics for easier memorization.',
+        'Practice identifying subtle differences between frequently confused pairs.',
+        'Regularly practice sentence completions to apply vocabulary actively.'
+      ],
+      details: 'Improving your vocabulary directly enhances reading comprehension and writing skills. Familiarizing yourself with commonly tested vocabulary—especially those words that significantly affect sentence meaning—can help you quickly decode passages and eliminate incorrect answer choices. Practice regularly with flashcards, apps, or vocabulary quizzes for maximum effectiveness.'
+    }
+  },
+  {
+    id: '4',
+    title: 'SAT Math Formulas Master List',
+    description: 'Detailed explanations and applications for essential SAT math formulas.',
+    image: require('../assets/images/react-logo.png'),
+    category: 'math',
+    content: {
+      overview: 'Gain confidence by memorizing and mastering essential math formulas required for SAT success. Although some formulas appear on the test booklet, knowing these thoroughly will dramatically speed up your problem-solving.',
+      keyPoints: [
+        'Algebra: quadratic formula, slope-intercept, standard form equations.',
+        'Geometry: area and volume formulas for shapes like cylinders, cones, and spheres.',
+        'Trigonometry: SOHCAHTOA and special angle relationships (30°-60°-90°, 45°-45°-90° triangles).',
+        'Statistics: mean, median, mode, range, and standard deviation concepts.',
+        'Circle theorems: arc lengths, sector areas, and central angles.'
+      ],
+      details: 'The SAT math section assesses both your ability to recall formulas quickly and apply them correctly under time constraints. Thorough practice with these formulas, including recognizing contextual clues that indicate their use, is essential. Regular drills on applying formulas to practice problems will significantly enhance speed and accuracy.'
+    }
+  },
+  {
+    id: '5',
+    title: 'Comprehensive Grammar Rules for SAT Success',
+    description: 'Detailed explanations of frequently tested SAT grammar concepts.',
+    image: require('../assets/images/react-logo.png'),
+    category: 'tips',
+    content: {
+      overview: 'Enhance your SAT Writing and Language scores by mastering key grammar rules commonly tested. Recognizing and fixing common grammatical errors is essential for success on this section of the exam.',
+      keyPoints: [
+        'Understand complex subject-verb agreement scenarios, including collective nouns.',
+        'Ensure clarity by consistently matching pronouns with antecedents.',
+        'Master punctuation rules for commas, semicolons, colons, and dashes.',
+        'Practice maintaining parallel structure in sentences involving lists or comparisons.',
+        'Identify and correct misplaced and dangling modifiers to clarify meaning.'
+      ],
+      details: 'The SAT frequently tests grammar using common patterns and recognizable errors. By thoroughly understanding these grammar rules, you’ll be able to quickly identify mistakes and select correct answers confidently. Engage regularly with practice exercises that reinforce these grammatical concepts in context to ensure deeper understanding and better retention.'
+    }
+  }
+];
+
   
   export const profileStats = {
     name: 'Alex Johnson',
