@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, SafeAreaView, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, SIZES, SHADOWS } from '@/constants/Colors';
+import { useRouter } from 'expo-router';
+import { COLORS, SIZES, SHADOWS } from '@/constants/Colors';
 import { resources } from '@/constants/mockData';
 import { ResourceCard } from '@/components/ResourceCard';
 
 type ResourceCategory = 'all' | 'tips' | 'vocabulary' | 'math';
 
 export default function ResourcesScreen() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<ResourceCategory>('all');
 
@@ -28,10 +30,9 @@ export default function ResourcesScreen() {
     
     return true;
   });
-
   const handleResourcePress = (id: string) => {
-    // This would navigate to the resource detail page
-    console.log(`Resource ${id} pressed`);
+    // Navigate to the resource detail page
+    router.push(`/resource-detail?id=${id}`);
   };
 
   const renderCategoryPill = (category: string) => {
