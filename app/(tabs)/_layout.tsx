@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { HapticTab } from '../../components/HapticTab';
 
 export default function TabsLayout() {
   return (
@@ -14,6 +15,7 @@ export default function TabsLayout() {
           height: 60,
           paddingBottom: 10,
         },
+        tabBarButton: (props) => <HapticTab {...props} />,
       }}
     >
       <Tabs.Screen

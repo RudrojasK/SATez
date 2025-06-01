@@ -25,53 +25,105 @@ export const ChatMessage = ({ message, isLastMessage }: ChatMessageProps) => {
   const [showActions, setShowActions] = useState(false);
   const [showQuizExample, setShowQuizExample] = useState(false);
   
+  // Check if this is a math question based on the first line
+  const isMathQuestion = useMemo(() => {
+    if (isUser) return false;
+    
+    // Split by newline and check first line
+    const lines = message.content.split('\n');
+    if (lines.length === 0) return false;
+    
+    const firstLine = lines[0].trim();
+    return firstLine === "Math question";
+  }, [message.content, isUser]);
+
+  // Remove the categorization line from displayed content (ALWAYS remove first line for assistant messages)
+  const displayContent = useMemo(() => {
+    if (isUser) return message.content;
+    
+    let content = message.content;
+    
+    // ALWAYS remove the first line for assistant messages (this ensures status line is never shown)
+    const lines = content.split('\n');
+    if (lines.length > 0) {
+      // Remove the first line completely
+      content = lines.slice(1).join('\n').trim();
+    }
+    
+    // Remove the quiz example tags and content
+    content = content.replace(/<quiz-example>[\s\S]*?<\/quiz-example>/g, '').trim();
+    
+    return content;
+  }, [message.content, isUser]);
+  
   // Extract quiz example from message content if it exists
   const quizData = useMemo<QuizData | null>(() => {
     try {
-      if (isUser) return null;
+      if (isUser || !isMathQuestion) return null;
       
+      // Look for quiz example tags with JSON content
       const match = message.content.match(/<quiz-example>([\s\S]*?)<\/quiz-example>/);
+      
       if (match && match[1]) {
-        const quizJson = JSON.parse(match[1].trim());
-        return {
-          question: quizJson.question,
-          choices: quizJson.choices,
-          correctAnswer: quizJson.correctAnswer,
-          explanation: quizJson.explanation
-        };
+        const rawQuizData = match[1].trim();
+        
+        try {
+          // Try to parse the JSON
+          const quizJson = JSON.parse(rawQuizData);
+          
+          // Validate that all required fields exist
+          if (quizJson.question && Array.isArray(quizJson.choices) && quizJson.correctAnswer && quizJson.explanation) {
+            return {
+              question: quizJson.question,
+              choices: quizJson.choices,
+              correctAnswer: quizJson.correctAnswer,
+              explanation: quizJson.explanation
+            };
+          } else {
+            console.error('Quiz JSON missing required fields:', quizJson);
+            return null;
+          }
+        } catch (jsonError) {
+          console.error('Failed to parse quiz JSON:', jsonError);
+          
+          // Try to fix common JSON issues
+          try {
+            // Attempt to fix malformed JSON by adding missing quotes and brackets
+            let fixedJson = rawQuizData;
+            
+            // If it doesn't start with {, add it
+            if (!fixedJson.trim().startsWith('{')) {
+              fixedJson = '{' + fixedJson;
+            }
+            
+            // If it doesn't end with }, add it
+            if (!fixedJson.trim().endsWith('}')) {
+              fixedJson = fixedJson + '}';
+            }
+            
+            const parsedFixed = JSON.parse(fixedJson);
+            
+            if (parsedFixed.question && Array.isArray(parsedFixed.choices) && parsedFixed.correctAnswer && parsedFixed.explanation) {
+              return {
+                question: parsedFixed.question,
+                choices: parsedFixed.choices,
+                correctAnswer: parsedFixed.correctAnswer,
+                explanation: parsedFixed.explanation
+              };
+            }
+          } catch (fixError) {
+            console.error('Failed to fix JSON:', fixError);
+          }
+          
+          return null;
+        }
       }
       return null;
     } catch (error) {
       console.error('Failed to parse quiz data:', error);
       return null;
     }
-  }, [message.content, isUser]);
-
-  // Check if this is a math question based on the first line
-  const isMathQuestion = useMemo(() => {
-    if (isUser) return false;
-    const firstLine = message.content.split('\n')[0].trim();
-    return firstLine === "Math question";
-  }, [message.content, isUser]);
-
-  // Remove the quiz example and categorization line from displayed content
-  const displayContent = useMemo(() => {
-    if (isUser) return message.content;
-    
-    let content = message.content;
-    
-    // Remove the categorization line (first line if it's "Math question" or "Not math")
-    const lines = content.split('\n');
-    const firstLine = lines[0].trim();
-    if (firstLine === "Math question" || firstLine === "Not math") {
-      content = lines.slice(1).join('\n');
-    }
-    
-    // Remove the quiz example tags
-    content = content.replace(/<quiz-example>[\s\S]*?<\/quiz-example>/g, '').trim();
-    
-    return content;
-  }, [message.content, isUser]);
+  }, [message.content, isUser, isMathQuestion]);
   
   // Don't render system messages
   if (message.role === 'system') {
@@ -80,7 +132,7 @@ export const ChatMessage = ({ message, isLastMessage }: ChatMessageProps) => {
   
   const handleCopyText = async () => {
     try {
-      await Clipboard.setStringAsync(message.content);
+      await Clipboard.setStringAsync(displayContent); // Copy the cleaned message
       Alert.alert('Copied!', 'Message copied to clipboard');
     } catch (error) {
       Alert.alert('Error', 'Failed to copy message');
@@ -94,7 +146,7 @@ export const ChatMessage = ({ message, isLastMessage }: ChatMessageProps) => {
       const favoriteResponse: FavoriteResponse = {
         id: message.id,
         question: 'User Question', // Ideally, find the related question
-        answer: message.content,
+        answer: displayContent, // Save the cleaned message
         timestamp: message.timestamp
       };
       
@@ -151,7 +203,7 @@ export const ChatMessage = ({ message, isLastMessage }: ChatMessageProps) => {
         </View>
       </TouchableOpacity>
       
-      {/* Show Example button (only for assistant messages with quiz data AND math questions) */}
+      {/* Show Example button (only for math questions with quiz data) */}
       {!isUser && quizData && isMathQuestion && (
         <View style={styles.exampleButtonContainer}>
           <TouchableOpacity 
@@ -172,7 +224,7 @@ export const ChatMessage = ({ message, isLastMessage }: ChatMessageProps) => {
       )}
       
       {/* Quiz Example (if available and button is clicked) */}
-      {!isUser && quizData && isMathQuestion && showQuizExample && (
+      {!isUser && quizData && showQuizExample && (
         <QuizExample quizData={quizData} />
       )}
     </View>
@@ -248,12 +300,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 16,
   },
+  exampleButtonIcon: {
+    marginRight: 4,
+  },
   exampleButtonText: {
     color: COLORS.primary,
     fontSize: 14,
     fontWeight: '600',
-  },
-  exampleButtonIcon: {
-    marginRight: 4,
   },
 });
