@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COLORS, FONTS, SIZES, SHADOWS } from '@/constants/Colors';
-import { PracticeCard } from '@/components/PracticeCard';
-import { practiceTests } from '@/constants/mockData';
+import React, { useState } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { PracticeCard } from '../../components/PracticeCard';
+import { COLORS, SHADOWS, SIZES } from '../../constants/Colors';
+import { practiceTests } from '../../constants/mockData';
 
 type PracticeCategory = 'full' | 'drill' | 'quiz';
 
@@ -14,7 +14,6 @@ export default function PracticeScreen() {
   const filteredTests = practiceTests.filter(test => test.type === activeTab);
 
   const handleCardPress = (id: string) => {
-    // Navigate to quiz screen with the selected quiz ID
     router.push(`/quiz?id=${id}`);
   };
 

@@ -14,38 +14,46 @@ import {
     TextInput,
     TouchableOpacity,
     TouchableWithoutFeedback,
-    View
+    View,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
-export default function LoginScreen() {
+export default function SignupScreen() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signUp } = useAuth();
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
+  const handleSignup = async () => {
+    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
       return;
     }
 
     try {
       setIsLoading(true);
-      await signIn(email.trim(), password);
+      await signUp(email.trim(), password, name.trim());
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Invalid email or password');
+      Alert.alert('Signup Failed', error.message || 'Failed to create account');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fillTestCredentials = () => {
-    setEmail('test@test.com');
-    setPassword('password');
   };
 
   return (
@@ -66,11 +74,27 @@ export default function LoginScreen() {
                 </View>
                 <Text style={styles.brandName}>SATez</Text>
               </View>
-              <Text style={styles.welcomeText}>Welcome back!</Text>
-              <Text style={styles.subtitleText}>Sign in to continue your SAT prep journey</Text>
+              <Text style={styles.welcomeText}>Join SATez</Text>
+              <Text style={styles.subtitleText}>Create your account to start your SAT prep journey</Text>
             </View>
 
             <View style={styles.formContainer}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter your full name"
+                    placeholderTextColor="#999"
+                    value={name}
+                    onChangeText={setName}
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                  />
+                </View>
+              </View>
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Email</Text>
                 <View style={styles.inputWrapper}>
@@ -94,7 +118,7 @@ export default function LoginScreen() {
                   <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
                   <TextInput
                     style={styles.textInput}
-                    placeholder="Enter your password"
+                    placeholder="Create a password"
                     placeholderTextColor="#999"
                     value={password}
                     onChangeText={setPassword}
@@ -115,30 +139,46 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.forgotPassword}>
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Confirm Password</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Confirm your password"
+                    placeholderTextColor="#999"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={styles.eyeIcon}
+                  >
+                    <Ionicons 
+                      name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} 
+                      size={20} 
+                      color="#666" 
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
 
               <TouchableOpacity 
-                style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-                onPress={handleLogin}
+                style={[styles.signupButton, isLoading && styles.signupButtonDisabled]}
+                onPress={handleSignup}
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <View style={styles.loadingContainer}>
                     <View style={styles.spinner} />
-                    <Text style={styles.loginButtonText}>Signing In...</Text>
+                    <Text style={styles.signupButtonText}>Creating Account...</Text>
                   </View>
                 ) : (
-                  <Text style={styles.loginButtonText}>Sign In</Text>
+                  <Text style={styles.signupButtonText}>Create Account</Text>
                 )}
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.testButton}
-                onPress={fillTestCredentials}
-              >
-                <Text style={styles.testButtonText}>Use Test Credentials</Text>
               </TouchableOpacity>
 
               <View style={styles.divider}>
@@ -157,11 +197,11 @@ export default function LoginScreen() {
                 <Text style={styles.socialButtonText}>Continue with Apple</Text>
               </TouchableOpacity>
 
-              <View style={styles.signupContainer}>
-                <Text style={styles.signupText}>Don't have an account? </Text>
-                <Link href="/(auth)/signup" asChild>
+              <View style={styles.loginContainer}>
+                <Text style={styles.loginText}>Already have an account? </Text>
+                <Link href="/(auth)/login" asChild>
                   <TouchableOpacity>
-                    <Text style={styles.signupLink}>Sign Up</Text>
+                    <Text style={styles.loginLink}>Sign In</Text>
                   </TouchableOpacity>
                 </Link>
               </View>
@@ -187,34 +227,34 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingTop: height * 0.08,
-    paddingBottom: 40,
+    paddingTop: height * 0.05,
+    paddingBottom: 32,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#2962ff',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   logoText: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#fff',
   },
   brandName: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#2962ff',
   },
   welcomeText: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 8,
@@ -228,7 +268,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   inputLabel: {
     fontSize: 16,
@@ -257,27 +297,19 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 8,
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 32,
-  },
-  forgotPasswordText: {
-    color: '#2962ff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  loginButton: {
+  signupButton: {
     backgroundColor: '#2962ff',
     borderRadius: 12,
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 24,
     marginBottom: 16,
   },
-  loginButtonDisabled: {
+  signupButtonDisabled: {
     opacity: 0.7,
   },
-  loginButtonText: {
+  signupButtonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
@@ -294,21 +326,6 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
     borderTopColor: 'transparent',
     marginRight: 8,
-  },
-  testButton: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  testButtonText: {
-    color: '#666',
-    fontSize: 16,
-    fontWeight: '600',
   },
   divider: {
     flexDirection: 'row',
@@ -342,18 +359,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-  signupContainer: {
+  loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 24,
     paddingBottom: 32,
   },
-  signupText: {
+  loginText: {
     color: '#666',
     fontSize: 16,
   },
-  signupLink: {
+  loginLink: {
     color: '#2962ff',
     fontSize: 16,
     fontWeight: '600',

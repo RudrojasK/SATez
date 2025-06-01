@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, SafeAreaView, Platform, StatusBar, Alert } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
-import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../context/AuthContext';
 
 export default function HomeScreen() {
   const { signOut, user, session, refreshUser } = useAuth();

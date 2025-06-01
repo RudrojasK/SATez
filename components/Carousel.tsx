@@ -1,72 +1,56 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { 
-  View, 
-  ScrollView, 
-  StyleSheet, 
-  Dimensions, 
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-  Platform
-} from 'react-native';
-import { COLORS, SIZES } from '@/constants/Colors';
-
-const { width } = Dimensions.get('window');
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, ScrollView, StyleSheet, View } from 'react-native';
+import { COLORS } from '../constants/Colors';
 
 interface CarouselProps {
   data: React.ReactNode[];
-  height?: number;
+  height: number;
   autoPlay?: boolean;
   autoPlayInterval?: number;
   showIndicator?: boolean;
 }
 
-export const Carousel = ({
-  data,
-  height = 180,
-  autoPlay = false,
+export function Carousel({ 
+  data, 
+  height, 
+  autoPlay = false, 
   autoPlayInterval = 3000,
-  showIndicator = true,
-}: CarouselProps) => {
+  showIndicator = false 
+}: CarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
-  const autoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const newIndex = Math.round(contentOffsetX / width);
-    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < data.length) {
-      setActiveIndex(newIndex);
-    }
-  }, [activeIndex, data.length]);
+  const scrollX = useRef(new Animated.Value(0)).current;
 
-  const scrollToIndex = useCallback((index: number) => {
-    if (scrollViewRef.current && index >= 0 && index < data.length) {
-      scrollViewRef.current.scrollTo({
-        x: index * width,
-        animated: true,
-      });
-    }
-  }, [data.length]);
-
-  React.useEffect(() => {
-    if (autoPlay && data.length > 1) {
-      if (autoPlayTimeoutRef.current) {
-        clearTimeout(autoPlayTimeoutRef.current);
-      }
-      
-      autoPlayTimeoutRef.current = setTimeout(() => {
-        const newIndex = (activeIndex + 1) % data.length;
-        setActiveIndex(newIndex);
-        scrollToIndex(newIndex);
-      }, autoPlayInterval) as NodeJS.Timeout;
-
-      return () => {
-        if (autoPlayTimeoutRef.current) {
-          clearTimeout(autoPlayTimeoutRef.current);
+  useEffect(() => {
+    if (autoPlay) {
+      const timer = setInterval(() => {
+        if (activeIndex === data.length - 1) {
+          scrollViewRef.current?.scrollTo({ x: 0, animated: true });
+          setActiveIndex(0);
+        } else {
+          scrollViewRef.current?.scrollTo({
+            x: (activeIndex + 1) * Dimensions.get('window').width,
+            animated: true,
+          });
+          setActiveIndex(activeIndex + 1);
         }
-      };
+      }, autoPlayInterval);
+
+      return () => clearInterval(timer);
     }
-  }, [activeIndex, autoPlay, autoPlayInterval, data.length, scrollToIndex]);
+  }, [activeIndex, autoPlay, autoPlayInterval, data.length]);
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+    { useNativeDriver: false }
+  );
+
+  const handleMomentumScrollEnd = (event: any) => {
+    const contentOffset = event.nativeEvent.contentOffset.x;
+    const viewSize = event.nativeEvent.layoutMeasurement.width;
+    const newIndex = Math.floor(contentOffset / viewSize);
+    setActiveIndex(newIndex);
+  };
 
   return (
     <View style={[styles.container, { height }]}>
@@ -76,26 +60,24 @@ export const Carousel = ({
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
         scrollEventThrottle={16}
-        decelerationRate="fast"
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
       >
         {data.map((item, index) => (
-          <View key={index} style={[styles.item, { width }]}>
+          <View key={index} style={styles.slide}>
             {item}
           </View>
         ))}
       </ScrollView>
 
-      {showIndicator && data.length > 1 && (
-        <View style={styles.indicatorContainer}>
+      {showIndicator && (
+        <View style={styles.pagination}>
           {data.map((_, index) => (
             <View
               key={index}
               style={[
-                styles.indicator,
-                index === activeIndex && styles.activeIndicator,
+                styles.paginationDot,
+                index === activeIndex && styles.paginationDotActive,
               ]}
             />
           ))}
@@ -103,45 +85,31 @@ export const Carousel = ({
       )}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
     width: '100%',
-    overflow: 'hidden',
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollViewContent: {
-    // Add this to fix Android rendering issues
-    ...(Platform.OS === 'android' && { flexGrow: 1 }),
-  },
-  item: {
+  slide: {
+    width: Dimensions.get('window').width,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
   },
-  indicatorContainer: {
+  pagination: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
     position: 'absolute',
-    bottom: 10,
-    width: '100%',
+    bottom: 8,
+    alignSelf: 'center',
   },
-  indicator: {
+  paginationDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(150, 150, 150, 0.5)',
+    backgroundColor: COLORS.border,
     marginHorizontal: 4,
   },
-  activeIndicator: {
+  paginationDotActive: {
     backgroundColor: COLORS.primary,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
   },
 }); 

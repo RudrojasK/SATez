@@ -1,36 +1,32 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Text } from 'react-native';
-import { COLORS } from '@/constants/Colors';
+import { Tabs } from 'expo-router';
 
-export default function TabLayout() {
+export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textLight,
+        headerShown: false,
+        tabBarActiveTintColor: '#2962ff',
+        tabBarInactiveTintColor: '#666',
         tabBarStyle: {
-          backgroundColor: COLORS.background,
           borderTopWidth: 1,
-          borderTopColor: COLORS.border,
+          borderTopColor: '#eee',
           height: 60,
           paddingBottom: 10,
-          paddingTop: 5,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
         },
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
+            <Ionicons 
+              name={focused ? 'home' : 'home-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
-          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -38,9 +34,12 @@ export default function TabLayout() {
         options={{
           title: 'Practice',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "document-text" : "document-text-outline"} size={24} color={color} />
+            <Ionicons 
+              name={focused ? 'document-text' : 'document-text-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
-          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -48,9 +47,12 @@ export default function TabLayout() {
         options={{
           title: 'Resources',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "library" : "library-outline"} size={24} color={color} />
+            <Ionicons 
+              name={focused ? 'library' : 'library-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
-          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -58,9 +60,11 @@ export default function TabLayout() {
         options={{
           title: 'Tutor',
           tabBarIcon: ({ color, focused }) => (
-            <Text>
-              <Ionicons name={focused ? "school" : "school-outline"} size={24} color={color} />
-            </Text>
+            <Ionicons 
+              name={focused ? 'school' : 'school-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
           headerShown: false,
         }}
@@ -70,11 +74,12 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <Text>
-              <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
-            </Text>
+            <Ionicons 
+              name={focused ? 'person' : 'person-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
-          headerShown: false,
         }}
       />
     </Tabs>

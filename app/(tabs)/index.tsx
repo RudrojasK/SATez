@@ -1,11 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Platform, SafeAreaView, Dimensions } from 'react-native';
-import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, SIZES, SHADOWS } from '@/constants/Colors';
-import { Button } from '@/components/Button';
-import { Carousel } from '@/components/Carousel';
-import { Card } from '@/components/Card';
+import { Link } from 'expo-router';
+import React from 'react';
+import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -15,53 +11,32 @@ export default function HomeScreen() {
       title: 'Practice Tests',
       description: 'Full-length SAT practice tests with detailed explanations',
       icon: 'document-text',
-      route: '/practice',
+      route: '/(tabs)/practice',
     },
     {
       title: 'Vocabulary',
       description: 'Master essential SAT vocabulary words',
       icon: 'book',
-      route: '/resources',
+      route: '/(tabs)/resources',
     },
     {
       title: 'Math Tips',
       description: 'Learn key formulas and problem-solving strategies',
       icon: 'calculator',
-      route: '/resources',
+      route: '/(tabs)/resources',
     },
     {
       title: 'Reading Comprehension',
       description: 'Improve your critical reading skills',
       icon: 'glasses',
-      route: '/resources',
+      route: '/(tabs)/resources',
     },
   ];
 
-  const carouselItems = features.map((feature, index) => (
-    <Link 
-      key={index} 
-      href={feature.route as any}
-      asChild
-    >
-      <TouchableOpacity 
-        style={styles.carouselItem} 
-        activeOpacity={0.8}
-        accessibilityRole="button"
-        accessibilityLabel={feature.title}
-      >
-        <View style={styles.carouselIconContainer}>
-          <Ionicons name={feature.icon as any} size={32} color={COLORS.primary} />
-        </View>
-        <Text style={styles.carouselTitle}>{feature.title}</Text>
-        <Text style={styles.carouselDescription}>{feature.description}</Text>
-      </TouchableOpacity>
-    </Link>
-  ));
-
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: COLORS.background}}>
+    <SafeAreaView style={styles.container}>
       <ScrollView 
-        style={styles.container} 
+        style={styles.scrollView} 
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
@@ -71,41 +46,41 @@ export default function HomeScreen() {
             <Text style={styles.heroSubtitle}>
               Personalized prep, expert tips, and thousands of practice questions to help you succeed.
             </Text>
-            <Link href="/practice" asChild>
+            <Link href="/(tabs)/practice" asChild>
               <TouchableOpacity 
                 style={styles.heroButton}
                 activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel="Start Practicing"
               >
                 <Text style={styles.heroButtonText}>Start Practicing</Text>
                 <Ionicons name="arrow-forward" size={20} color="#FFF" />
               </TouchableOpacity>
             </Link>
           </View>
-          <Image 
-            source={require('@/assets/images/partial-react-logo.png')}
-            style={styles.heroImage}
-            resizeMode="contain"
-          />
+          <View style={styles.heroIconContainer}>
+            <Ionicons name="school-outline" size={100} color="rgba(255, 255, 255, 0.3)" />
+          </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Explore Features</Text>
-          <View style={styles.carouselContainer}>
-            <Carousel 
-              data={carouselItems} 
-              height={200} 
-              autoPlay
-              autoPlayInterval={5000}
-              showIndicator={true}
-            />
+          <View style={styles.featuresContainer}>
+            {features.map((feature, index) => (
+              <Link key={index} href={feature.route as any} asChild>
+                <TouchableOpacity style={styles.featureCard}>
+                  <View style={styles.featureIconContainer}>
+                    <Ionicons name={feature.icon as any} size={32} color="#2962ff" />
+                  </View>
+                  <Text style={styles.featureTitle}>{feature.title}</Text>
+                  <Text style={styles.featureDescription}>{feature.description}</Text>
+                </TouchableOpacity>
+              </Link>
+            ))}
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Study Plans</Text>
-          <Card style={styles.studyPlanCard}>
+          <View style={styles.studyPlanCard}>
             <View style={styles.studyPlanHeader}>
               <View style={styles.studyPlanBadge}>
                 <Text style={styles.studyPlanBadgeText}>Popular</Text>
@@ -117,36 +92,13 @@ export default function HomeScreen() {
             </View>
             <View style={styles.studyPlanFooter}>
               <View style={styles.infoItem}>
-                <Ionicons name="time-outline" size={16} color={COLORS.textLight} />
+                <Ionicons name="time-outline" size={16} color="#666" />
                 <Text style={styles.studyPlanInfo}>30 Days</Text>
               </View>
-              <Link href="/practice" asChild>
-                <TouchableOpacity 
-                  style={styles.studyPlanButton}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.studyPlanButtonText}>View Plan</Text>
-                </TouchableOpacity>
-              </Link>
-            </View>
-          </Card>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.footerSection}>
-            <Ionicons name="rocket-outline" size={32} color={COLORS.primary} />
-            <Text style={styles.footerTitle}>Ready to improve your score?</Text>
-            <Text style={styles.footerDescription}>
-              Start practicing today and track your progress.
-            </Text>
-            <Link href="/practice" asChild>
-              <TouchableOpacity 
-                style={styles.footerOutlineButton}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.footerOutlineButtonText}>Go to Practice</Text>
+              <TouchableOpacity style={styles.studyPlanButton}>
+                <Text style={styles.studyPlanButtonText}>View Plan</Text>
               </TouchableOpacity>
-            </Link>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -157,20 +109,22 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#f8f9fa',
+  },
+  scrollView: {
+    flex: 1,
   },
   contentContainer: {
-    padding: SIZES.padding,
+    padding: 16,
     paddingBottom: 40,
   },
   hero: {
     position: 'relative',
-    backgroundColor: COLORS.primary,
-    borderRadius: SIZES.radius,
-    padding: SIZES.padding,
+    backgroundColor: '#2962ff',
+    borderRadius: 12,
+    padding: 20,
     marginBottom: 24,
     overflow: 'hidden',
-    ...SHADOWS.medium,
     minHeight: 200,
   },
   textContainer: {
@@ -196,24 +150,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderColor: 'rgba(255, 255, 255, 0.3)',
     borderWidth: 1,
-    borderRadius: SIZES.radius,
+    borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 20,
     gap: 8,
-    marginTop: 8,
   },
   heroButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
-    marginRight: 4, // For platforms that don't support gap
   },
-  heroImage: {
+  heroIconContainer: {
     position: 'absolute',
     bottom: -20,
     right: -20,
-    width: 150,
-    height: 150,
     opacity: 0.3,
   },
   section: {
@@ -222,89 +172,94 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: COLORS.text,
+    color: '#333',
     marginBottom: 16,
   },
-  carouselContainer: {
-    marginHorizontal: -SIZES.padding, // This extends the carousel beyond container padding
-    marginBottom: 8,
+  featuresContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
   },
-  carouselItem: {
-    width: Math.min(320, width * 0.8), // Fixed width or 80% of screen width, whichever is smaller
-    backgroundColor: COLORS.card,
-    borderRadius: SIZES.radius,
-    padding: SIZES.padding,
-    marginHorizontal: 10, // Even spacing between cards
-    height: 180,
-    ...SHADOWS.medium, // Use medium shadow for more depth
+  featureCard: {
+    width: (width - 44) / 2,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  carouselIconContainer: {
+  featureIconContainer: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(46, 91, 255, 0.1)',
+    backgroundColor: 'rgba(41, 98, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  carouselTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
+  featureTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 8,
     textAlign: 'center',
   },
-  carouselDescription: {
-    fontSize: 14,
-    color: COLORS.textLight,
+  featureDescription: {
+    fontSize: 12,
+    color: '#666',
     textAlign: 'center',
-    paddingHorizontal: 8,
   },
   studyPlanCard: {
-    padding: 0,
+    backgroundColor: '#fff',
+    borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   studyPlanHeader: {
-    padding: SIZES.padding,
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: '#f0f0f0',
     position: 'relative',
   },
   studyPlanBadge: {
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: '#ffd700',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderBottomLeftRadius: SIZES.smallRadius,
+    borderBottomLeftRadius: 8,
   },
   studyPlanBadgeText: {
-    color: COLORS.text,
+    color: '#333',
     fontSize: 12,
     fontWeight: '600',
   },
   studyPlanTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text,
+    color: '#333',
     marginBottom: 8,
     marginTop: 8,
   },
   studyPlanDescription: {
     fontSize: 14,
-    color: COLORS.textLight,
+    color: '#666',
   },
   studyPlanFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
-    padding: SIZES.padding,
+    padding: 16,
   },
   infoItem: {
     flexDirection: 'row',
@@ -312,56 +267,18 @@ const styles = StyleSheet.create({
   },
   studyPlanInfo: {
     fontSize: 14,
-    color: COLORS.textLight,
+    color: '#666',
     marginLeft: 4,
   },
   studyPlanButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#2962ff',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: SIZES.smallRadius,
+    borderRadius: 6,
   },
   studyPlanButtonText: {
     color: '#FFF',
     fontWeight: '600',
     fontSize: 14,
-  },
-  footerSection: {
-    alignItems: 'center',
-    padding: SIZES.padding,
-    backgroundColor: COLORS.card,
-    borderRadius: SIZES.radius,
-    marginBottom: 16,
-  },
-  footerTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginVertical: 8,
-    textAlign: 'center',
-  },
-  footerDescription: {
-    fontSize: 16,
-    color: COLORS.textLight,
-    textAlign: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 16,
-  },
-  footerOutlineButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-    borderColor: COLORS.primary,
-    borderWidth: 2,
-    borderRadius: SIZES.radius,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    minWidth: 160,
-  },
-  footerOutlineButtonText: {
-    color: COLORS.primary,
-    fontWeight: '600',
-    fontSize: 16,
   },
 });

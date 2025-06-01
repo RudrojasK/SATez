@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, SafeAreaView, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { COLORS, SIZES, SHADOWS } from '@/constants/Colors';
-import { resources } from '@/constants/mockData';
-import { ResourceCard } from '@/components/ResourceCard';
+import React, { useState } from 'react';
+import { Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ResourceCard } from '../../components/ResourceCard';
+import { COLORS, SHADOWS, SIZES } from '../../constants/Colors';
+import { resources } from '../../constants/mockData';
 
 type ResourceCategory = 'all' | 'tips' | 'vocabulary' | 'math';
 
@@ -14,12 +14,10 @@ export default function ResourcesScreen() {
   const [activeCategory, setActiveCategory] = useState<ResourceCategory>('all');
 
   const filteredResources = resources.filter(resource => {
-    // First filter by category
     if (activeCategory !== 'all' && resource.category !== activeCategory) {
       return false;
     }
     
-    // Then filter by search query if it exists
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
@@ -30,8 +28,8 @@ export default function ResourcesScreen() {
     
     return true;
   });
+
   const handleResourcePress = (id: string) => {
-    // Navigate to the resource detail page
     router.push(`/resource-detail?id=${id}`);
   };
 

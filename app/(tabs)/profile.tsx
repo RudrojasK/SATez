@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, SIZES, SHADOWS } from '@/constants/Colors';
-import { profileStats } from '@/constants/mockData';
-import { StatCard } from '@/components/StatCard';
-import { Button } from '@/components/Button';
-import { useAuth } from '@/context/AuthContext';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StatCard } from '../../components/StatCard';
+import { COLORS, SHADOWS, SIZES } from '../../constants/Colors';
+import { profileStats } from '../../constants/mockData';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProfileScreen() {
   const { user, signOut, refreshUser } = useAuth();
@@ -32,17 +31,15 @@ export default function ProfileScreen() {
     console.log('Settings pressed');
   };
   
-  const handleSignOut = async () => {
-    setLoading(true);
-    try {
-      await signOut();
-      // The router in _layout.tsx will handle redirection to login
-    } catch (error) {
-      console.error('Error signing out:', error);
-      Alert.alert('Error signing out', 'Please try again');
-    } finally {
-      setLoading(false);
-    }
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: signOut },
+      ]
+    );
   };
   
   const refreshUserData = async () => {
@@ -70,20 +67,11 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <View style={styles.profileInfo}>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>
-                  {userName ? userName.charAt(0).toUpperCase() : 'U'}
-                </Text>
-              </View>
-              <View style={styles.statusIndicator} />
-            </View>
-            <View style={styles.nameContainer}>
-              <Text style={styles.name} numberOfLines={1}>{userName || 'User'}</Text>
-              <Text style={styles.email} numberOfLines={1}>{user.email}</Text>
-            </View>
+          <View style={styles.avatarContainer}>
+            <Text style={styles.avatarText}>{userName ? userName.charAt(0).toUpperCase() : 'U'}</Text>
           </View>
+          <Text style={styles.name}>{userName || 'User'}</Text>
+          <Text style={styles.email}>{user.email || 'user@example.com'}</Text>
         </View>
 
         <View style={styles.section}>
@@ -156,33 +144,41 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View style={styles.buttonContainer}>
-          <Button
-            title="Settings"
-            onPress={handleSettingsPress}
-            variant="outline"
-            icon={<Ionicons name="settings-outline" size={20} color={COLORS.primary} />}
-          />
-          
-          <View style={styles.buttonSpacer} />
-          
-          <Button
-            title="Refresh Data"
-            onPress={refreshUserData}
-            variant="outline"
-            icon={<Ionicons name="refresh-outline" size={20} color={COLORS.primary} />}
-          />
-          
-          <View style={styles.buttonSpacer} />
-          
-          <Button
-            title="Sign Out"
-            onPress={handleSignOut}
-            variant="outline"
-            icon={<Ionicons name="log-out-outline" size={20} color={COLORS.error} />}
-            style={styles.signOutButton}
-            textStyle={styles.signOutText}
-          />
+        <View style={styles.menuContainer}>
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="person-outline" size={24} color="#666" />
+            <Text style={styles.menuText}>Edit Profile</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="stats-chart-outline" size={24} color="#666" />
+            <Text style={styles.menuText}>Progress Stats</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="settings-outline" size={24} color="#666" />
+            <Text style={styles.menuText}>Settings</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="help-circle-outline" size={24} color="#666" />
+            <Text style={styles.menuText}>Help & Support</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="information-circle-outline" size={24} color="#666" />
+            <Text style={styles.menuText}>About</Text>
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+            <Ionicons name="log-out-outline" size={24} color="#ff4444" />
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -192,70 +188,51 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#f8f9fa',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
+    backgroundColor: '#f8f9fa',
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: COLORS.textLight,
+    color: '#333',
   },
   scrollContent: {
     padding: SIZES.padding,
     paddingBottom: 40,
   },
   header: {
-    marginBottom: 24,
-  },
-  profileInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
+    padding: 32,
+    backgroundColor: '#fff',
   },
   avatarContainer: {
-    position: 'relative',
-  },
-  avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.primary,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#2962ff',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 16,
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
     color: '#fff',
-  },
-  statusIndicator: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: COLORS.success,
-    borderWidth: 2,
-    borderColor: COLORS.background,
-  },
-  nameContainer: {
-    marginLeft: 16,
-    flex: 1,
   },
   name: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.text,
+    color: '#333',
     marginBottom: 4,
   },
   email: {
-    fontSize: 14,
-    color: COLORS.textLight,
+    fontSize: 16,
+    color: '#666',
   },
   section: {
     marginBottom: 24,
@@ -263,19 +240,19 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: COLORS.text,
+    color: '#333',
     marginBottom: 16,
   },
   statsContainer: {
     gap: 12,
   },
   progressCard: {
-    backgroundColor: COLORS.background,
+    backgroundColor: '#fff',
     borderRadius: SIZES.radius,
     padding: SIZES.padding,
     ...SHADOWS.small,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#f0f0f0',
   },
   progressRow: {
     flexDirection: 'row',
@@ -289,25 +266,25 @@ const styles = StyleSheet.create({
   progressDivider: {
     width: 1,
     height: 50,
-    backgroundColor: COLORS.border,
+    backgroundColor: '#f0f0f0',
   },
   progressNumber: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: '#333',
     marginBottom: 4,
   },
   progressLabel: {
     fontSize: 14,
-    color: COLORS.textLight,
+    color: '#666',
   },
   activityCard: {
-    backgroundColor: COLORS.background,
+    backgroundColor: '#fff',
     borderRadius: SIZES.radius,
     padding: SIZES.padding,
     ...SHADOWS.small,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#f0f0f0',
   },
   activityItem: {
     flexDirection: 'row',
@@ -327,34 +304,57 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: COLORS.text,
+    color: '#333',
   },
   activityTime: {
     fontSize: 12,
-    color: COLORS.textLight,
+    color: '#666',
   },
   activityScore: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.success,
+    color: '#333',
     marginLeft: 12,
   },
   activityDivider: {
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: '#f0f0f0',
     marginVertical: 8,
   },
-  buttonContainer: {
-    marginTop: 16,
-    marginBottom: 24,
+  menuContainer: {
+    flex: 1,
+    marginTop: 24,
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    borderRadius: 12,
+    paddingVertical: 8,
   },
-  buttonSpacer: {
-    height: 12,
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 16,
   },
   signOutButton: {
-    borderColor: COLORS.error,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginTop: 8,
   },
   signOutText: {
-    color: COLORS.error,
+    flex: 1,
+    fontSize: 16,
+    color: '#ff4444',
+    marginLeft: 16,
+    fontWeight: '600',
   },
 });
