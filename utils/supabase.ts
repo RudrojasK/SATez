@@ -50,11 +50,9 @@ const createCustomStorage = () => {
   return AsyncStorage;
 };
 
-// --- TEMPORARY DEBUGGING: Hardcoding Supabase credentials ---
-// --- !!! IMPORTANT: This is a temporary solution !!! ---
-// --- !!! DO NOT COMMIT THIS TO VERSION CONTROL !!! ---
-const supabaseUrl = "https://xfpkdnqgbdelpfdomxej.supabase.co"; // process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmcGtkbnFnYmRlbHBmZG9teGVqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzQyMzU2MiwiZXhwIjoyMDYyOTk5NTYyfQ.1D0xVeMq2N14s73WK9JrVLaYH-7UZPKW2T4HtwiCxHY"; // process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+const supabaseUrl = "x"; // process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = "x"; // process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 // --- End of temporary debugging section ---
 
 if (!supabaseUrl || !supabaseAnonKey) {
