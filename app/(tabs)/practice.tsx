@@ -14,6 +14,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import AdvancedModal from '../../components/AdvancedModal';
+import { FormButton, FormInput, ValidationRules } from '../../components/FormComponents';
+import SkeletonLoader from '../../components/SkeletonLoader';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,6 +25,12 @@ export default function PracticeScreen() {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<'scale' | 'slide' | 'fade' | 'spring' | 'flip'>('scale');
+  const [refreshing, setRefreshing] = useState(false);
+  const [testName, setTestName] = useState('');
+  const [testDescription, setTestDescription] = useState('');
 
   useEffect(() => {
     Animated.parallel([
@@ -42,6 +51,13 @@ export default function PracticeScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+
+    // Simulate initial loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const categories = [
@@ -113,162 +129,72 @@ export default function PracticeScreen() {
     test => selectedCategory === 'all' || test.category === selectedCategory
   );
 
-  const CategoryButton = ({ category, index }: { category: typeof categories[0]; index: number }) => {
-    const isSelected = selectedCategory === category.id;
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setIsLoading(true);
     
+    // Simulate network request
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    setRefreshing(false);
+    setIsLoading(false);
+    
+    if (Haptics.impactAsync) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+  const openModal = (type: 'scale' | 'slide' | 'fade' | 'spring' | 'flip') => {
+    setModalType(type);
+    setShowModal(true);
+    if (Haptics.impactAsync) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+  };
+
+  const handleCreateTest = () => {
+    console.log('Creating test:', { testName, testDescription });
+    setShowModal(false);
+    setTestName('');
+    setTestDescription('');
+    if (Haptics.notificationAsync) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'Easy': return '#4CD964';
+      case 'Medium': return '#FF9500'; 
+      case 'Hard': return '#FF3B30';
+      default: return '#666';
+    }
+  };
+
+  if (isLoading && !refreshing) {
     return (
-      <TouchableOpacity
-        style={[
-          styles.categoryButton,
-          isSelected && styles.categoryButtonSelected,
-        ]}
-        onPress={() => handleCategoryPress(category.id)}
-        activeOpacity={0.8}
-      >
-        {isSelected ? (
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
+        
+        {/* Header Skeleton */}
+        <View style={styles.header}>
           <LinearGradient
-            colors={[category.color, `${category.color}80`]}
-            style={styles.categoryButtonGradient}
-          >
-            <Ionicons name={category.icon as any} size={20} color="#FFF" />
-            <Text style={[styles.categoryButtonText, { color: '#FFF' }]}>
-              {category.title}
-            </Text>
-          </LinearGradient>
-        ) : (
-          <View style={styles.categoryButtonDefault}>
-            <Ionicons name={category.icon as any} size={20} color="#666" />
-            <Text style={styles.categoryButtonText}>{category.title}</Text>
+            colors={['#667eea', '#764ba2']}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Practice Tests</Text>
+            <Text style={styles.headerSubtitle}>Loading your personalized content...</Text>
           </View>
-        )}
-      </TouchableOpacity>
+        </View>
+
+        {/* Loading Content */}
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <SkeletonLoader variant="practice-test" count={1} />
+        </ScrollView>
+      </View>
     );
-  };
-
-  const PracticeTestCard = ({ test, index }: { test: typeof practiceTests[0]; index: number }) => {
-    const cardScale = useRef(new Animated.Value(1)).current;
-    
-    const handlePress = () => {
-      Animated.sequence([
-        Animated.timing(cardScale, {
-          toValue: 0.95,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(cardScale, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
-      
-      if (Platform.OS === 'ios') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }
-    };
-
-    const getDifficultyColor = (difficulty: string) => {
-      switch (difficulty) {
-        case 'Easy': return '#4CD964';
-        case 'Medium': return '#FF9500';
-        case 'Hard': return '#FF3B30';
-        default: return '#666';
-      }
-    };
-
-    return (
-      <Animated.View
-        style={[
-          styles.testCard,
-          {
-            opacity: fadeAnim,
-            transform: [
-              { translateY: slideAnim },
-              { scale: cardScale },
-            ],
-          },
-        ]}
-      >
-        <TouchableOpacity onPress={handlePress} activeOpacity={0.9}>
-          <LinearGradient
-            colors={test.gradient}
-            style={styles.testCardGradient}
-          >
-            <View style={styles.testCardHeader}>
-              <View style={styles.testCardInfo}>
-                <Text style={styles.testCardTitle}>{test.title}</Text>
-                <Text style={styles.testCardDescription}>{test.description}</Text>
-              </View>
-              
-              <View style={styles.statusContainer}>
-                {test.completed ? (
-                  <View style={styles.completedBadge}>
-                    <Ionicons name="checkmark-circle" size={16} color="#4CD964" />
-                    <Text style={styles.completedText}>Completed</Text>
-                  </View>
-                ) : (
-                  <View style={[
-                    styles.difficultyBadge,
-                    { backgroundColor: getDifficultyColor(test.difficulty) }
-                  ]}>
-                    <Text style={styles.difficultyText}>{test.difficulty}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.testCardBody}>
-              <View style={styles.statRow}>
-                <View style={styles.statItem}>
-                  <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.8)" />
-                  <Text style={styles.statText}>{test.duration}</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Ionicons name="help-circle-outline" size={16} color="rgba(255,255,255,0.8)" />
-                  <Text style={styles.statText}>{test.questions} questions</Text>
-                </View>
-              </View>
-
-              {test.progress > 0 && (
-                <View style={styles.progressSection}>
-                  <View style={styles.progressHeader}>
-                    <Text style={styles.progressLabel}>Progress</Text>
-                    <Text style={styles.progressPercentage}>{test.progress}%</Text>
-                  </View>
-                  <View style={styles.progressBarContainer}>
-                    <View style={styles.progressBarBackground} />
-                    <Animated.View
-                      style={[
-                        styles.progressBarFill,
-                        { width: `${test.progress}%` }
-                      ]}
-                    />
-                  </View>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.testCardFooter}>
-              <View style={styles.actionButton}>
-                <Text style={styles.actionButtonText}>
-                  {test.completed ? 'Review' : test.progress > 0 ? 'Continue' : 'Start'}
-                </Text>
-                <Ionicons 
-                  name="arrow-forward" 
-                  size={16} 
-                  color="#FFF" 
-                />
-              </View>
-            </View>
-
-            {/* Decorative elements */}
-            <View style={styles.cardDecor1} />
-            <View style={styles.cardDecor2} />
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -285,18 +211,21 @@ export default function PracticeScreen() {
         ]}
       >
         <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.headerTitle}>Practice Tests</Text>
-            <Text style={styles.headerSubtitle}>Improve your SAT score with targeted practice</Text>
-          </View>
-          <TouchableOpacity style={styles.profileButton}>
-            <LinearGradient
-              colors={['#6C5CE7', '#A29BFE']}
-              style={styles.profileButtonGradient}
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.headerTitle}>Practice Tests</Text>
+              <Text style={styles.headerSubtitle}>Master every section with confidence</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={handleRefresh}
+              disabled={refreshing}
             >
-              <Ionicons name="person" size={20} color="#FFF" />
-            </LinearGradient>
-          </TouchableOpacity>
+              <Animated.View style={{ transform: [{ rotate: refreshing ? '360deg' : '0deg' }] }}>
+                <Ionicons name="refresh" size={24} color="#fff" />
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
         </View>
       </Animated.View>
 
@@ -315,9 +244,40 @@ export default function PracticeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryScrollContent}
         >
-          {categories.map((category, index) => (
-            <CategoryButton key={category.id} category={category} index={index} />
-          ))}
+          {refreshing ? (
+            <SkeletonLoader variant="card" count={4} />
+          ) : (
+            categories.map((category, index) => (
+              <Animated.View
+                key={category.id}
+                style={[
+                  { transform: [{ scale: new Animated.Value(1) }] }
+                ]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.categoryButton,
+                    selectedCategory === category.id && styles.categoryButtonSelected
+                  ]}
+                  onPress={() => handleCategoryPress(category.id)}
+                >
+                  <LinearGradient
+                    colors={selectedCategory === category.id 
+                      ? ['#FF6B6B', '#FF8E8E'] 
+                      : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
+                    style={styles.categoryGradient}
+                  >
+                    <Text style={[
+                      styles.categoryButtonText,
+                      selectedCategory === category.id && styles.categoryButtonTextSelected
+                    ]}>
+                      {category.title}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
+            ))
+          )}
         </ScrollView>
       </Animated.View>
 
@@ -327,10 +287,164 @@ export default function PracticeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {filteredTests.map((test, index) => (
-          <PracticeTestCard key={test.id} test={test} index={index} />
-        ))}
+        {refreshing ? (
+          <SkeletonLoader variant="practice-test" count={3} />
+        ) : (
+          filteredTests.map((test, index) => (
+            <Animated.View
+              key={test.id}
+              style={[
+                styles.testCard,
+                {
+                  opacity: fadeAnim,
+                  transform: [
+                    { translateY: slideAnim },
+                    { scale: scaleAnim },
+                  ],
+                },
+              ]}
+            >
+              <TouchableOpacity onPress={() => openModal('spring')} activeOpacity={0.9}>
+                <LinearGradient
+                  colors={test.gradient}
+                  style={styles.testCardGradient}
+                >
+                  <View style={styles.testCardHeader}>
+                    <View style={styles.testCardInfo}>
+                      <Text style={styles.testCardTitle}>{test.title}</Text>
+                      <Text style={styles.testCardDescription}>{test.description}</Text>
+                    </View>
+                    
+                    <View style={styles.statusContainer}>
+                      {test.completed ? (
+                        <View style={styles.completedBadge}>
+                          <Ionicons name="checkmark-circle" size={16} color="#4CD964" />
+                          <Text style={styles.completedText}>Completed</Text>
+                        </View>
+                      ) : (
+                        <View style={[
+                          styles.difficultyBadge,
+                          { backgroundColor: getDifficultyColor(test.difficulty) }
+                        ]}>
+                          <Text style={styles.difficultyText}>{test.difficulty}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  <View style={styles.testCardBody}>
+                    <View style={styles.statRow}>
+                      <View style={styles.statItem}>
+                        <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.8)" />
+                        <Text style={styles.statText}>{test.duration}</Text>
+                      </View>
+                      <View style={styles.statItem}>
+                        <Ionicons name="help-circle-outline" size={16} color="rgba(255,255,255,0.8)" />
+                        <Text style={styles.statText}>{test.questions} questions</Text>
+                      </View>
+                    </View>
+
+                    {test.progress > 0 && (
+                      <View style={styles.progressSection}>
+                        <View style={styles.progressHeader}>
+                          <Text style={styles.progressLabel}>Progress</Text>
+                          <Text style={styles.progressPercentage}>{test.progress}%</Text>
+                        </View>
+                        <View style={styles.progressBarContainer}>
+                          <View style={styles.progressBarBackground} />
+                          <Animated.View
+                            style={[
+                              styles.progressBarFill,
+                              { width: `${test.progress}%` }
+                            ]}
+                          />
+                        </View>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.testCardFooter}>
+                    <View style={styles.actionButton}>
+                      <Text style={styles.actionButtonText}>
+                        {test.completed ? 'Review' : test.progress > 0 ? 'Continue' : 'Start'}
+                      </Text>
+                      <Ionicons 
+                        name="arrow-forward" 
+                        size={16} 
+                        color="#FFF" 
+                      />
+                    </View>
+                  </View>
+
+                  {/* Decorative elements */}
+                  <View style={styles.cardDecor1} />
+                  <View style={styles.cardDecor2} />
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+          ))
+        )}
       </ScrollView>
+
+      {/* Advanced Modal Examples */}
+      <AdvancedModal
+        visible={showModal}
+        onClose={() => setShowModal(false)}
+        animationType={modalType}
+        position="center"
+        size="medium"
+        useBlur={true}
+        hasGradient={false}
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Create Custom Test</Text>
+          <Text style={styles.modalSubtitle}>Design your own practice session</Text>
+          
+          <FormInput
+            label="Test Name"
+            value={testName}
+            onChangeText={setTestName}
+            placeholder="Enter test name"
+            icon="school"
+            validationRules={[
+              ValidationRules.required(),
+              ValidationRules.minLength(3)
+            ]}
+          />
+          
+          <FormInput
+            label="Description"
+            value={testDescription}
+            onChangeText={setTestDescription}
+            placeholder="Describe your test"
+            icon="document-text"
+            multiline={true}
+            maxLength={200}
+            validationRules={[
+              ValidationRules.required(),
+              ValidationRules.maxLength(200)
+            ]}
+          />
+          
+          <View style={styles.modalActions}>
+            <FormButton
+              title="Cancel"
+              onPress={() => setShowModal(false)}
+              variant="outline"
+              size="medium"
+              icon="close"
+            />
+            <FormButton
+              title="Create Test"
+              onPress={handleCreateTest}
+              variant="gradient"
+              size="medium"
+              icon="checkmark"
+              loading={false}
+            />
+          </View>
+        </View>
+      </AdvancedModal>
     </SafeAreaView>
   );
 }
@@ -359,13 +473,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
-  profileButton: {
-    borderRadius: 20,
-    overflow: 'hidden',
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
   },
-  profileButtonGradient: {
-    width: 40,
-    height: 40,
+  refreshButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -387,25 +505,21 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  categoryButtonGradient: {
+  categoryGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    gap: 8,
-  },
-  categoryButtonDefault: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#FFF',
     gap: 8,
   },
   categoryButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#666',
+  },
+  categoryButtonTextSelected: {
+    fontWeight: 'bold',
+    color: '#FFF',
   },
   scrollView: {
     flex: 1,
@@ -563,5 +677,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)',
     bottom: -20,
     left: -20,
+  },
+  modalContent: {
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2E3A59',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#8F9BB3',
+    marginBottom: 24,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 24,
+    gap: 16,
   },
 });
