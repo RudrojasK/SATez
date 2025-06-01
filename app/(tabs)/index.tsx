@@ -11,25 +11,25 @@ export default function HomeScreen() {
       title: 'Practice Tests',
       description: 'Full-length SAT practice tests with detailed explanations',
       icon: 'document-text',
-      route: '/practice',
+      route: '/(tabs)/practice',
     },
     {
       title: 'Vocabulary',
       description: 'Master essential SAT vocabulary words',
       icon: 'book',
-      route: '/resources',
+      route: '/(tabs)/resources',
     },
     {
       title: 'Math Tips',
       description: 'Learn key formulas and problem-solving strategies',
       icon: 'calculator',
-      route: '/resources',
+      route: '/(tabs)/resources',
     },
     {
       title: 'Reading Comprehension',
       description: 'Improve your critical reading skills',
       icon: 'glasses',
-      route: '/resources',
+      route: '/(tabs)/resources',
     },
   ];
 
@@ -46,7 +46,7 @@ export default function HomeScreen() {
             <Text style={styles.heroSubtitle}>
               Personalized prep, expert tips, and thousands of practice questions to help you succeed.
             </Text>
-            <Link href="/practice" asChild>
+            <Link href="/(tabs)/practice" asChild>
               <TouchableOpacity 
                 style={styles.heroButton}
                 activeOpacity={0.8}
@@ -65,13 +65,15 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Explore Features</Text>
           <View style={styles.featuresContainer}>
             {features.map((feature, index) => (
-              <TouchableOpacity key={index} style={styles.featureCard}>
-                <View style={styles.featureIconContainer}>
-                  <Ionicons name={feature.icon as any} size={32} color="#2962ff" />
-                </View>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>{feature.description}</Text>
-              </TouchableOpacity>
+              <Link key={index} href={feature.route as any} asChild>
+                <TouchableOpacity style={styles.featureCard}>
+                  <View style={styles.featureIconContainer}>
+                    <Ionicons name={feature.icon as any} size={32} color="#2962ff" />
+                  </View>
+                  <Text style={styles.featureTitle}>{feature.title}</Text>
+                  <Text style={styles.featureDescription}>{feature.description}</Text>
+                </TouchableOpacity>
+              </Link>
             ))}
           </View>
         </View>
