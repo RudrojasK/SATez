@@ -1,8 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Text } from 'react-native';
-import { COLORS } from '@/constants/Colors';
-import { Ionicons } from '@expo/vector-icons';
-
 import { Tabs } from 'expo-router';
 import { HapticTab } from '../../components/HapticTab';
 

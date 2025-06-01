@@ -2,15 +2,10 @@ import { PracticeCard } from '@/components/PracticeCard';
 import { VocabQuestion } from '@/components/Vocab';
 import { COLORS, SHADOWS, SIZES } from '@/constants/Colors';
 import { practiceTests } from '@/constants/mockData';
+
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { PracticeCard } from '../../components/PracticeCard';
-import { COLORS, SHADOWS, SIZES } from '../../constants/Colors';
-import { practiceTests } from '../../constants/mockData';
 
 type PracticeCategory = 'full' | 'drill' | 'quiz';
 
