@@ -1,185 +1,395 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { StatCard } from '../../components/StatCard';
-import { COLORS, SHADOWS, SIZES } from '../../constants/Colors';
-import { profileStats } from '../../constants/mockData';
-import { useAuth } from '../context/AuthContext';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useRef } from 'react';
+import {
+    Animated,
+    Dimensions,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 export default function ProfileScreen() {
-  const { user, signOut, refreshUser } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [userName, setUserName] = useState('');
-  
-  // Format the user's email to get a display name
-  useEffect(() => {
-    if (user?.email) {
-      // Extract name from email (part before @)
-      const emailName = user.email.split('@')[0];
-      // Capitalize first letter and replace dots/underscores with spaces
-      const formatted = emailName
-        .replace(/[._]/g, ' ')
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-      setUserName(formatted);
-    }
-  }, [user]);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const avatarScale = useRef(new Animated.Value(1)).current;
 
-  const handleSettingsPress = () => {
-    // This would navigate to the settings page
-    console.log('Settings pressed');
-  };
-  
-  const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: signOut },
-      ]
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Subtle avatar animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(avatarScale, {
+          toValue: 1.05,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(avatarScale, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const userStats = [
+    {
+      label: 'Tests Completed',
+      value: '23',
+      icon: 'checkmark-circle',
+      color: '#4CD964',
+      gradient: ['#4CD964', '#5AC8FA'] as const,
+    },
+    {
+      label: 'Current Streak',
+      value: '12 days',
+      icon: 'flame',
+      color: '#FF9500',
+      gradient: ['#FF9500', '#FF6B6B'] as const,
+    },
+    {
+      label: 'Score Improvement',
+      value: '+180',
+      icon: 'trending-up',
+      color: '#6C5CE7',
+      gradient: ['#6C5CE7', '#A29BFE'] as const,
+    },
+    {
+      label: 'Study Hours',
+      value: '47h',
+      icon: 'time',
+      color: '#00CEC9',
+      gradient: ['#00CEC9', '#55EFC4'] as const,
+    },
+  ];
+
+  const achievements = [
+    {
+      title: 'First Test',
+      description: 'Completed your first practice test',
+      icon: 'trophy',
+      color: '#FFD700',
+      unlocked: true,
+    },
+    {
+      title: 'Perfect Score',
+      description: 'Achieved 100% on a section',
+      icon: 'star',
+      color: '#FF6B6B',
+      unlocked: true,
+    },
+    {
+      title: 'Study Streak',
+      description: '7 days in a row',
+      icon: 'flame',
+      color: '#FF9500',
+      unlocked: true,
+    },
+    {
+      title: 'Math Master',
+      description: 'Complete 50 math problems',
+      icon: 'calculator',
+      color: '#6C5CE7',
+      unlocked: false,
+    },
+  ];
+
+  const menuItems = [
+    {
+      title: 'Study Plan',
+      description: 'Customize your learning path',
+      icon: 'calendar',
+      color: '#6C5CE7',
+      hasArrow: true,
+    },
+    {
+      title: 'Performance Analytics',
+      description: 'Detailed progress insights',
+      icon: 'analytics',
+      color: '#00CEC9',
+      hasArrow: true,
+    },
+    {
+      title: 'Settings',
+      description: 'App preferences and account',
+      icon: 'settings',
+      color: '#8E8E93',
+      hasArrow: true,
+    },
+    {
+      title: 'Help & Support',
+      description: 'FAQs and contact support',
+      icon: 'help-circle',
+      color: '#FF9500',
+      hasArrow: true,
+    },
+  ];
+
+  const StatCard = ({ stat, index }: { stat: typeof userStats[0]; index: number }) => {
+    const cardAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      Animated.timing(cardAnim, {
+        toValue: 1,
+        duration: 800,
+        delay: index * 150,
+        useNativeDriver: true,
+      }).start();
+    }, []);
+
+    return (
+      <Animated.View
+        style={[
+          styles.statCard,
+          {
+            opacity: cardAnim,
+            transform: [
+              {
+                translateY: cardAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [30, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <LinearGradient colors={stat.gradient} style={styles.statCardGradient}>
+          <View style={styles.statIconContainer}>
+            <Ionicons name={stat.icon as any} size={24} color="#FFF" />
+          </View>
+          <Text style={styles.statValue}>{stat.value}</Text>
+          <Text style={styles.statLabel}>{stat.label}</Text>
+          
+          {/* Decorative elements */}
+          <View style={styles.statDecor1} />
+          <View style={styles.statDecor2} />
+        </LinearGradient>
+      </Animated.View>
     );
   };
-  
-  const refreshUserData = async () => {
-    setLoading(true);
-    try {
-      await refreshUser();
-      Alert.alert('Success', 'User data refreshed');
-    } catch (error) {
-      console.error('Error refreshing user data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  if (!user || loading) {
+  const AchievementBadge = ({ achievement, index }: { achievement: typeof achievements[0]; index: number }) => {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+      <View style={[styles.achievementBadge, !achievement.unlocked && styles.achievementLocked]}>
+        <View
+          style={[
+            styles.achievementIcon,
+            { backgroundColor: achievement.unlocked ? achievement.color : '#E5E5EA' },
+          ]}
+        >
+          <Ionicons
+            name={achievement.icon as any}
+            size={20}
+            color={achievement.unlocked ? '#FFF' : '#8E8E93'}
+          />
+        </View>
+        <View style={styles.achievementInfo}>
+          <Text style={[styles.achievementTitle, !achievement.unlocked && styles.achievementTitleLocked]}>
+            {achievement.title}
+          </Text>
+          <Text style={styles.achievementDescription}>{achievement.description}</Text>
+        </View>
       </View>
     );
-  }
+  };
+
+  const MenuItem = ({ item, index }: { item: typeof menuItems[0]; index: number }) => {
+    const itemAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      Animated.timing(itemAnim, {
+        toValue: 1,
+        duration: 600,
+        delay: index * 100,
+        useNativeDriver: true,
+      }).start();
+    }, []);
+
+    const handlePress = () => {
+      if (Platform.OS === 'ios') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    };
+
+    return (
+      <Animated.View
+        style={[
+          styles.menuItemContainer,
+          {
+            opacity: itemAnim,
+            transform: [
+              {
+                translateX: itemAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-50, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <TouchableOpacity style={styles.menuItem} onPress={handlePress} activeOpacity={0.7}>
+          <View style={styles.menuItemLeft}>
+            <View style={[styles.menuItemIcon, { backgroundColor: `${item.color}15` }]}>
+              <Ionicons name={item.icon as any} size={22} color={item.color} />
+            </View>
+            <View style={styles.menuItemText}>
+              <Text style={styles.menuItemTitle}>{item.title}</Text>
+              <Text style={styles.menuItemDescription}>{item.description}</Text>
+            </View>
+          </View>
+          {item.hasArrow && (
+            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+          )}
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>{userName ? userName.charAt(0).toUpperCase() : 'U'}</Text>
-          </View>
-          <Text style={styles.name}>{userName || 'User'}</Text>
-          <Text style={styles.email}>{user.email || 'user@example.com'}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Stats</Text>
-          <View style={styles.statsContainer}>
-            <StatCard 
-              title="Quizzes Taken" 
-              value={profileStats.quizzesTaken} 
-              icon="document-text" 
-              accentColor={COLORS.primary}
-            />
-            <StatCard 
-              title="Average Score" 
-              value={profileStats.averageScore} 
-              icon="stats-chart" 
-              accentColor={COLORS.secondary}
-            />
-            <StatCard 
-              title="Study Streak" 
-              value={`${profileStats.streak} Days`} 
-              icon="flame" 
-              accentColor={COLORS.accent}
-            />
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Progress Overview</Text>
-          <View style={styles.progressCard}>
-            <View style={styles.progressRow}>
-              <View style={styles.progressItem}>
-                <Text style={styles.progressNumber}>{profileStats.totalHours}</Text>
-                <Text style={styles.progressLabel}>Hours Studied</Text>
+      <StatusBar barStyle="light-content" backgroundColor="#6C5CE7" />
+      
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Header */}
+        <Animated.View
+          style={[
+            styles.profileHeader,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={['#6C5CE7', '#A29BFE', '#74B9FF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.profileHeaderGradient}
+          >
+            <View style={styles.profileContent}>
+              <Animated.View
+                style={[
+                  styles.avatarContainer,
+                  { transform: [{ scale: avatarScale }] },
+                ]}
+              >
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
+                  style={styles.avatarGradient}
+                >
+                  <Ionicons name="person" size={40} color="#FFF" />
+                </LinearGradient>
+              </Animated.View>
+              
+              <Text style={styles.userName}>Alex Johnson</Text>
+              <Text style={styles.userEmail}>alex.johnson@example.com</Text>
+              
+              <View style={styles.targetScoreContainer}>
+                <Text style={styles.targetScoreLabel}>Target Score</Text>
+                <Text style={styles.targetScore}>1500</Text>
               </View>
-              <View style={styles.progressDivider} />
-              <View style={styles.progressItem}>
-                <Text style={styles.progressNumber}>{profileStats.completedTests}</Text>
-                <Text style={styles.progressLabel}>Tests Completed</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
-          <View style={styles.activityCard}>
-            <View style={styles.activityItem}>
-              <View style={styles.activityLeft}>
-                <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
-                <View style={styles.activityTextContainer}>
-                  <Text style={styles.activityTitle} numberOfLines={1}>Vocabulary Quiz</Text>
-                  <Text style={styles.activityTime} numberOfLines={1}>Yesterday at 3:15 PM</Text>
-                </View>
-              </View>
-              <Text style={styles.activityScore}>85%</Text>
             </View>
             
-            <View style={styles.activityDivider} />
-            
-            <View style={styles.activityItem}>
-              <View style={styles.activityLeft}>
-                <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
-                <View style={styles.activityTextContainer}>
-                  <Text style={styles.activityTitle} numberOfLines={1}>Math Practice Drill</Text>
-                  <Text style={styles.activityTime} numberOfLines={1}>2 days ago</Text>
-                </View>
-              </View>
-              <Text style={styles.activityScore}>72%</Text>
-            </View>
+            {/* Floating elements */}
+            <View style={styles.floatingElement1} />
+            <View style={styles.floatingElement2} />
+            <View style={styles.floatingElement3} />
+          </LinearGradient>
+        </Animated.View>
+
+        {/* Stats Section */}
+        <Animated.View
+          style={[
+            styles.statsSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <Text style={styles.sectionTitle}>Your Progress</Text>
+          <View style={styles.statsGrid}>
+            {userStats.map((stat, index) => (
+              <StatCard key={index} stat={stat} index={index} />
+            ))}
           </View>
-        </View>
+        </Animated.View>
 
-        <View style={styles.menuContainer}>
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="person-outline" size={24} color="#666" />
-            <Text style={styles.menuText}>Edit Profile</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
+        {/* Achievements Section */}
+        <Animated.View
+          style={[
+            styles.achievementsSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Achievements</Text>
+            <TouchableOpacity style={styles.seeAllButton}>
+              <Text style={styles.seeAllText}>See All</Text>
+              <Ionicons name="chevron-forward" size={16} color="#6C5CE7" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.achievementsList}>
+            {achievements.map((achievement, index) => (
+              <AchievementBadge key={index} achievement={achievement} index={index} />
+            ))}
+          </View>
+        </Animated.View>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="stats-chart-outline" size={24} color="#666" />
-            <Text style={styles.menuText}>Progress Stats</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="settings-outline" size={24} color="#666" />
-            <Text style={styles.menuText}>Settings</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="help-circle-outline" size={24} color="#666" />
-            <Text style={styles.menuText}>Help & Support</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="information-circle-outline" size={24} color="#666" />
-            <Text style={styles.menuText}>About</Text>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-            <Ionicons name="log-out-outline" size={24} color="#ff4444" />
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Menu Section */}
+        <Animated.View
+          style={[
+            styles.menuSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <View style={styles.menuCard}>
+            {menuItems.map((item, index) => (
+              <MenuItem key={index} item={item} index={index} />
+            ))}
+          </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -190,171 +400,274 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
-  loadingContainer: {
+  scrollView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#333',
   },
   scrollContent: {
-    padding: SIZES.padding,
     paddingBottom: 40,
   },
-  header: {
+  profileHeader: {
+    marginBottom: 24,
+  },
+  profileHeaderGradient: {
+    padding: 24,
+    paddingTop: 40,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  profileContent: {
     alignItems: 'center',
-    padding: 32,
-    backgroundColor: '#fff',
+    zIndex: 2,
   },
   avatarContainer: {
+    marginBottom: 16,
+  },
+  avatarGradient: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#2962ff',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  avatarText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  name: {
+  userName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFF',
     marginBottom: 4,
   },
-  email: {
+  userEmail: {
     fontSize: 16,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 20,
   },
-  section: {
+  targetScoreContainer: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  targetScoreLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 2,
+  },
+  targetScore: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  floatingElement1: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    top: -40,
+    right: -40,
+  },
+  floatingElement2: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    bottom: -20,
+    left: -20,
+  },
+  floatingElement3: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    top: 80,
+    right: 60,
+  },
+  statsSection: {
+    marginHorizontal: 20,
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
     marginBottom: 16,
   },
-  statsContainer: {
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  progressCard: {
-    backgroundColor: '#fff',
-    borderRadius: SIZES.radius,
-    padding: SIZES.padding,
-    ...SHADOWS.small,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+  statCard: {
+    width: (width - 56) / 2,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  progressRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  statCardGradient: {
+    padding: 16,
+    minHeight: 120,
+    position: 'relative',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  progressItem: {
+  statIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  progressDivider: {
-    width: 1,
-    height: 50,
-    backgroundColor: '#f0f0f0',
-  },
-  progressNumber: {
-    fontSize: 32,
+  statValue: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFF',
     marginBottom: 4,
   },
-  progressLabel: {
-    fontSize: 14,
-    color: '#666',
+  statLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
-  activityCard: {
-    backgroundColor: '#fff',
-    borderRadius: SIZES.radius,
-    padding: SIZES.padding,
-    ...SHADOWS.small,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+  statDecor1: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    top: -10,
+    right: -10,
   },
-  activityItem: {
+  statDecor2: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    bottom: 10,
+    left: -5,
+  },
+  achievementsSection: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    marginBottom: 16,
   },
-  activityLeft: {
+  seeAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 4,
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: '#6C5CE7',
+    fontWeight: '600',
+  },
+  achievementsList: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  achievementBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  achievementLocked: {
+    opacity: 0.5,
+  },
+  achievementIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  achievementInfo: {
     flex: 1,
   },
-  activityTextContainer: {
-    flex: 1,
-  },
-  activityTitle: {
+  achievementTitle: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 2,
   },
-  activityTime: {
-    fontSize: 12,
-    color: '#666',
+  achievementTitleLocked: {
+    color: '#8E8E93',
   },
-  activityScore: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 12,
+  achievementDescription: {
+    fontSize: 14,
+    color: '#8E8E93',
   },
-  activityDivider: {
-    height: 1,
-    backgroundColor: '#f0f0f0',
-    marginVertical: 8,
+  menuSection: {
+    marginHorizontal: 20,
+    marginBottom: 24,
   },
-  menuContainer: {
-    flex: 1,
-    marginTop: 24,
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    borderRadius: 12,
-    paddingVertical: 8,
+  menuCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  menuItemContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    justifyContent: 'space-between',
+    padding: 16,
   },
-  menuText: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 16,
-  },
-  signOutButton: {
+  menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginTop: 8,
-  },
-  signOutText: {
     flex: 1,
+  },
+  menuItemIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  menuItemText: {
+    flex: 1,
+  },
+  menuItemTitle: {
     fontSize: 16,
-    color: '#ff4444',
-    marginLeft: 16,
     fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 2,
+  },
+  menuItemDescription: {
+    fontSize: 14,
+    color: '#8E8E93',
   },
 });
