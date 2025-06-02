@@ -6,6 +6,7 @@ import {
     fetchGroqCompletion,
     Message
 } from '@/utils/groq';
+import { lightHapticFeedback, mediumHapticFeedback } from '@/utils/haptics';
 import { ChatHistoryStorage } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
@@ -69,6 +70,9 @@ export default function TutorScreen() {
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
     
+    // Trigger light haptic feedback when sending a message
+    lightHapticFeedback();
+    
     // Create user message
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -115,7 +119,7 @@ export default function TutorScreen() {
     }
   };
   
-  const  handleStartNewConversation = () => {
+  const handleStartNewConversation = () => {
     Alert.alert(
       "New Conversation",
       "Are you sure you want to start a new conversation? This will clear all current messages.",
@@ -123,7 +127,11 @@ export default function TutorScreen() {
         { text: "Cancel", style: "cancel" },
         { 
           text: "Yes", 
-          onPress: () => setMessages(createInitialMessages())
+          onPress: () => {
+            // Trigger medium haptic feedback when starting a new conversation
+            mediumHapticFeedback();
+            setMessages(createInitialMessages());
+          }
         }
       ]
     );

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
@@ -17,6 +18,8 @@ import {
 import AdvancedModal from '../../components/AdvancedModal';
 import { FormButton, FormInput, ValidationRules } from '../../components/FormComponents';
 import SkeletonLoader from '../../components/SkeletonLoader';
+import { VocabQuestion } from '../../components/Vocab';
+import { practiceTests } from '../../constants/mockData';
 
 const { width, height } = Dimensions.get('window');
 
@@ -31,6 +34,9 @@ export default function PracticeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [testName, setTestName] = useState('');
   const [testDescription, setTestDescription] = useState('');
+  const [activeTab, setActiveTab] = useState('full');
+  
+  const router = useRouter();
 
   useEffect(() => {
     Animated.parallel([
@@ -67,57 +73,6 @@ export default function PracticeScreen() {
     { id: 'writing', title: 'Writing', icon: 'create', color: '#E17055' },
   ];
 
-  const practiceTests = [
-    {
-      id: 1,
-      title: 'SAT Practice Test #1',
-      description: 'Official College Board practice test',
-      duration: '3 hours',
-      questions: 154,
-      difficulty: 'Medium',
-      completed: false,
-      progress: 0,
-      category: 'all',
-      gradient: ['#667eea', '#764ba2'] as const,
-    },
-    {
-      id: 2,
-      title: 'Math Section Practice',
-      description: 'Focus on algebra and geometry problems',
-      duration: '80 minutes',
-      questions: 58,
-      difficulty: 'Hard',
-      completed: false,
-      progress: 35,
-      category: 'math',
-      gradient: ['#f093fb', '#f5576c'] as const,
-    },
-    {
-      id: 3,
-      title: 'Reading Comprehension',
-      description: 'Improve critical reading skills',
-      duration: '65 minutes',
-      questions: 52,
-      difficulty: 'Medium',
-      completed: true,
-      progress: 100,
-      category: 'reading',
-      gradient: ['#4facfe', '#00f2fe'] as const,
-    },
-    {
-      id: 4,
-      title: 'Writing & Language',
-      description: 'Grammar and style questions',
-      duration: '35 minutes',
-      questions: 44,
-      difficulty: 'Easy',
-      completed: false,
-      progress: 60,
-      category: 'writing',
-      gradient: ['#43e97b', '#38f9d7'] as const,
-    },
-  ];
-
   const handleCategoryPress = (categoryId: string) => {
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -125,8 +80,13 @@ export default function PracticeScreen() {
     setSelectedCategory(categoryId);
   };
 
+  const handleCardPress = (testId: string) => {
+    // Navigate to practice test
+    console.log('Opening practice test:', testId);
+  };
+
   const filteredTests = practiceTests.filter(
-    test => selectedCategory === 'all' || test.category === selectedCategory
+    test => selectedCategory === 'all' || test.type === selectedCategory
   );
 
   const handleRefresh = async () => {
@@ -306,83 +266,70 @@ export default function PracticeScreen() {
             >
               <TouchableOpacity onPress={() => openModal('spring')} activeOpacity={0.9}>
                 <LinearGradient
-                  colors={test.gradient}
-                  style={styles.testCardGradient}
+                  colors={['#667eea', '#764ba2']}
+                  style={styles.testGradient}
                 >
-                  <View style={styles.testCardHeader}>
-                    <View style={styles.testCardInfo}>
-                      <Text style={styles.testCardTitle}>{test.title}</Text>
-                      <Text style={styles.testCardDescription}>{test.description}</Text>
-                    </View>
-                    
-                    <View style={styles.statusContainer}>
-                      {test.completed ? (
-                        <View style={styles.completedBadge}>
-                          <Ionicons name="checkmark-circle" size={16} color="#4CD964" />
-                          <Text style={styles.completedText}>Completed</Text>
-                        </View>
-                      ) : (
-                        <View style={[
-                          styles.difficultyBadge,
-                          { backgroundColor: getDifficultyColor(test.difficulty) }
-                        ]}>
-                          <Text style={styles.difficultyText}>{test.difficulty}</Text>
-                        </View>
-                      )}
+                  <View style={styles.testHeader}>
+                    <Text style={styles.testTitle}>{test.title}</Text>
+                    <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(test.difficulty) }]}>
+                      <Text style={styles.difficultyText}>{test.difficulty}</Text>
                     </View>
                   </View>
-
-                  <View style={styles.testCardBody}>
-                    <View style={styles.statRow}>
-                      <View style={styles.statItem}>
-                        <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.8)" />
-                        <Text style={styles.statText}>{test.duration}</Text>
-                      </View>
-                      <View style={styles.statItem}>
-                        <Ionicons name="help-circle-outline" size={16} color="rgba(255,255,255,0.8)" />
-                        <Text style={styles.statText}>{test.questions} questions</Text>
-                      </View>
+                  
+                  <Text style={styles.testDescription}>{test.description}</Text>
+                  
+                  <View style={styles.testMeta}>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.8)" />
+                      <Text style={styles.metaText}>{test.timeEstimate}</Text>
                     </View>
-
-                    {test.progress > 0 && (
-                      <View style={styles.progressSection}>
-                        <View style={styles.progressHeader}>
-                          <Text style={styles.progressLabel}>Progress</Text>
-                          <Text style={styles.progressPercentage}>{test.progress}%</Text>
-                        </View>
-                        <View style={styles.progressBarContainer}>
-                          <View style={styles.progressBarBackground} />
-                          <Animated.View
-                            style={[
-                              styles.progressBarFill,
-                              { width: `${test.progress}%` }
-                            ]}
-                          />
-                        </View>
-                      </View>
-                    )}
+                    <View style={styles.metaItem}>
+                      <Ionicons name="help-circle-outline" size={16} color="rgba(255,255,255,0.8)" />
+                      <Text style={styles.metaText}>{test.type}</Text>
+                    </View>
                   </View>
-
-                  <View style={styles.testCardFooter}>
-                    <View style={styles.actionButton}>
-                      <Text style={styles.actionButtonText}>
-                        {test.completed ? 'Review' : test.progress > 0 ? 'Continue' : 'Start'}
+                  
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBar}>
+                      <View style={[styles.progressFill, { width: `${test.progress}%` }]} />
+                    </View>
+                    <Text style={styles.progressText}>{test.progress}% Complete</Text>
+                  </View>
+                  
+                  <View style={styles.testActions}>
+                    <TouchableOpacity 
+                      style={styles.startButton}
+                      onPress={() => handleCardPress(test.id)}
+                    >
+                      <Text style={styles.startButtonText}>
+                        {test.progress > 0 ? 'Continue' : 'Start Test'}
                       </Text>
-                      <Ionicons 
-                        name="arrow-forward" 
-                        size={16} 
-                        color="#FFF" 
-                      />
-                    </View>
+                      <Ionicons name="arrow-forward" size={16} color="#667eea" />
+                    </TouchableOpacity>
                   </View>
-
-                  {/* Decorative elements */}
-                  <View style={styles.cardDecor1} />
-                  <View style={styles.cardDecor2} />
                 </LinearGradient>
               </TouchableOpacity>
             </Animated.View>
           ))
+        )}
+        
+        {/* Additional practice components from upstream */}
+        {activeTab === 'full' && (
+          <VocabQuestion
+            title="Full Length Vocabulary Practice Questions"
+            description="All words that appear on the SAT"
+            image={require('../../assets/images/favicon.png')}
+            onPress={() => console.log('Navigate to vocab practice')}
+          />
+        )}
+
+        {activeTab === 'full' && (
+          <VocabQuestion
+            title="Full Length Reading Practice Questions"
+            description="All Questions that appear on the SAT"
+            image={require('../../assets/images/favicon.png')}
+            onPress={() => console.log('Navigate to reading practice')}
+          />
         )}
       </ScrollView>
 
@@ -538,47 +485,26 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
   },
-  testCardGradient: {
+  testGradient: {
     padding: 20,
     position: 'relative',
   },
-  testCardHeader: {
+  testHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 16,
   },
-  testCardInfo: {
-    flex: 1,
-    paddingRight: 16,
-  },
-  testCardTitle: {
+  testTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFF',
     marginBottom: 4,
   },
-  testCardDescription: {
+  testDescription: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
     lineHeight: 20,
-  },
-  statusContainer: {
-    alignItems: 'flex-end',
-  },
-  completedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(76, 217, 100, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
-  },
-  completedText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4CD964',
   },
   difficultyBadge: {
     paddingHorizontal: 12,
@@ -590,63 +516,45 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFF',
   },
-  testCardBody: {
-    marginBottom: 16,
-  },
-  statRow: {
+  testMeta: {
     flexDirection: 'row',
-    gap: 20,
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  statItem: {
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  statText: {
+  metaText: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
   },
-  progressSection: {
+  progressContainer: {
     marginTop: 12,
   },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  progressLabel: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  progressPercentage: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  progressBarContainer: {
+  progressBar: {
     height: 6,
     backgroundColor: 'rgba(255,255,255,0.3)',
     borderRadius: 3,
     overflow: 'hidden',
   },
-  progressBarBackground: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  progressBarFill: {
+  progressFill: {
     height: '100%',
     backgroundColor: '#FFF',
     borderRadius: 3,
   },
-  testCardFooter: {
+  progressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  testActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
   },
-  actionButton: {
+  startButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.2)',
@@ -655,28 +563,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 6,
   },
-  actionButtonText: {
+  startButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFF',
-  },
-  cardDecor1: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    top: -30,
-    right: -30,
-  },
-  cardDecor2: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    bottom: -20,
-    left: -20,
   },
   modalContent: {
     alignItems: 'center',

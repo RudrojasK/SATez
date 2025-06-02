@@ -1,3 +1,17 @@
+import { COLORS } from '@/constants/Colors';
+import React, { useCallback, useRef, useState } from 'react';
+import {
+  Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View
+} from 'react-native';
+
+const { width } = Dimensions.get('window');
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, ScrollView, StyleSheet, View } from 'react-native';
 import { COLORS } from '../constants/Colors';
@@ -40,6 +54,17 @@ export function Carousel({
     }
   }, [activeIndex, autoPlay, autoPlayInterval, data.length]);
 
+  React.useEffect(() => {
+    if (autoPlay && data.length > 1) {
+      if (autoPlayTimeoutRef.current) {
+        clearTimeout(autoPlayTimeoutRef.current);
+      }
+      
+      autoPlayTimeoutRef.current = setTimeout(() => {
+        const newIndex = (activeIndex + 1) % data.length;
+        setActiveIndex(newIndex);
+        scrollToIndex(newIndex);
+      }, autoPlayInterval) as unknown as NodeJS.Timeout;
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
     { useNativeDriver: false }

@@ -15,6 +15,24 @@ interface QuizExampleProps {
 export const QuizExample = ({ quizData }: QuizExampleProps) => {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
+  
+  // Validate quiz data to prevent rendering issues
+  if (!quizData || !quizData.question || !Array.isArray(quizData.choices) || !quizData.correctAnswer || !quizData.explanation) {
+    console.error('Invalid quiz data:', quizData);
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Practice Question</Text>
+        <Text style={styles.errorText}>Unable to load quiz example. Please try again.</Text>
+      </View>
+    );
+  }
+  
+  // Ensure the correct answer is in the choices array
+  const choices = [...quizData.choices];
+  if (!choices.includes(quizData.correctAnswer)) {
+    choices.push(quizData.correctAnswer);
+    console.warn('Correct answer was not in choices array, added it automatically');
+  }
 
   const handleSelectAnswer = (answer: string) => {
     setSelectedAnswer(answer);
@@ -28,7 +46,7 @@ export const QuizExample = ({ quizData }: QuizExampleProps) => {
       <Text style={styles.question}>{quizData.question}</Text>
       
       <View style={styles.choicesContainer}>
-        {quizData.choices.map((choice, index) => (
+        {choices.map((choice, index) => (
           <TouchableOpacity
             key={index}
             style={[
@@ -89,6 +107,11 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     lineHeight: 22,
     marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    color: COLORS.error,
+    marginBottom: 8,
   },
   choicesContainer: {
     marginBottom: 16,

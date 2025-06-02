@@ -19,6 +19,7 @@ import {
   TouchableWithoutFeedback,
   View
 } from 'react-native';
+import { successHapticFeedback } from '../../utils/haptics';
 import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
@@ -198,6 +199,7 @@ export default function LoginScreen() {
 
     try {
       setIsLoading(true);
+      successHapticFeedback();
       await signIn(email.trim(), password);
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Invalid email or password');
