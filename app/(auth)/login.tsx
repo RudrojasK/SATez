@@ -31,6 +31,13 @@ export default function LoginScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   
+  // Validation states
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [emailValid, setEmailValid] = useState(false);
+  const [passwordValid, setPasswordValid] = useState(false);
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  
   const { signIn } = useAuth();
   
   // Animation refs
@@ -39,6 +46,9 @@ export default function LoginScreen() {
   const logoScale = useRef(new Animated.Value(0.8)).current;
   const buttonPulse = useRef(new Animated.Value(1)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const emailErrorAnim = useRef(new Animated.Value(0)).current;
+  const passwordErrorAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Start entrance animations
@@ -79,9 +89,96 @@ export default function LoginScreen() {
     ).start();
   }, []);
 
+  // Email validation
+  const validateEmail = (emailText: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!emailText.trim()) {
+      setEmailError('Email is required');
+      setEmailValid(false);
+      return false;
+    }
+    
+    if (!emailRegex.test(emailText)) {
+      setEmailError('Please enter a valid email address');
+      setEmailValid(false);
+      return false;
+    }
+    
+    setEmailError('');
+    setEmailValid(true);
+    return true;
+  };
+
+  // Password validation
+  const validatePassword = (passwordText: string) => {
+    if (!passwordText.trim()) {
+      setPasswordError('Password is required');
+      setPasswordValid(false);
+      return false;
+    }
+    
+    if (passwordText.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      setPasswordValid(false);
+      return false;
+    }
+    
+    setPasswordError('');
+    setPasswordValid(true);
+    return true;
+  };
+
+  // Handle email change with validation
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (formSubmitted || text.length > 0) {
+      validateEmail(text);
+      animateErrorMessage(emailErrorAnim, !!emailError);
+    }
+  };
+
+  // Handle password change with validation
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (formSubmitted || text.length > 0) {
+      validatePassword(text);
+      animateErrorMessage(passwordErrorAnim, !!passwordError);
+    }
+  };
+
+  // Animate error messages
+  const animateErrorMessage = (anim: Animated.Value, show: boolean) => {
+    Animated.timing(anim, {
+      toValue: show ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Shake animation for form errors
+  const triggerShakeAnimation = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 10, duration: 100, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 100, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 100, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
+    ]).start();
+  };
+
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+    setFormSubmitted(true);
+    
+    // Validate both fields
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
+    
+    // Animate error messages
+    animateErrorMessage(emailErrorAnim, !isEmailValid);
+    animateErrorMessage(passwordErrorAnim, !isPasswordValid);
+    
+    if (!isEmailValid || !isPasswordValid) {
+      triggerShakeAnimation();
       return;
     }
 
@@ -112,12 +209,39 @@ export default function LoginScreen() {
   const fillTestCredentials = () => {
     setEmail('test@test.com');
     setPassword('password');
+    setFormSubmitted(false);
+    setEmailError('');
+    setPasswordError('');
+    setEmailValid(true);
+    setPasswordValid(true);
   };
 
   const floatingTransform = floatAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, -8],
   });
+
+  // Get input border color based on validation state
+  const getInputBorderColors = (isValid: boolean, hasError: boolean, isFocused: boolean) => {
+    if (hasError && formSubmitted) {
+      return ['#e74c3c', '#c0392b']; // Red for errors
+    }
+    if (isValid && formSubmitted) {
+      return ['#27ae60', '#2ecc71']; // Green for valid
+    }
+    if (isFocused) {
+      return ['#667eea', '#764ba2']; // Blue for focused
+    }
+    return ['#f8f9fa', '#f1f3f4']; // Default gray
+  };
+
+  // Get icon color based on state
+  const getIconColor = (isValid: boolean, hasError: boolean, isFocused: boolean) => {
+    if (hasError && formSubmitted) return '#e74c3c';
+    if (isValid && formSubmitted) return '#27ae60';
+    if (isFocused) return '#667eea';
+    return '#666';
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -197,7 +321,10 @@ export default function LoginScreen() {
                 styles.formContainer,
                 {
                   opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }],
+                  transform: [
+                    { translateY: slideAnim },
+                    { translateX: shakeAnim }
+                  ],
                 }
               ]}
             >
@@ -211,17 +338,17 @@ export default function LoginScreen() {
                   <Text style={styles.inputLabel}>Email Address</Text>
                   <View style={[
                     styles.inputWrapper,
-                    emailFocused && styles.inputWrapperFocused
+                    (emailFocused || emailValid || (emailError && formSubmitted)) && styles.inputWrapperFocused
                   ]}>
                     <LinearGradient
-                      colors={emailFocused ? ['#667eea', '#764ba2'] : ['#f8f9fa', '#f1f3f4']}
+                      colors={getInputBorderColors(emailValid, !!emailError, emailFocused) as [string, string]}
                       style={styles.inputGradientBorder}
                     >
                       <View style={styles.inputInner}>
                         <Ionicons 
                           name="mail-outline" 
                           size={20} 
-                          color={emailFocused ? "#667eea" : "#666"} 
+                          color={getIconColor(emailValid, !!emailError, emailFocused)}
                           style={styles.inputIcon} 
                         />
                         <TextInput
@@ -229,33 +356,60 @@ export default function LoginScreen() {
                           placeholder="Enter your email"
                           placeholderTextColor="#999"
                           value={email}
-                          onChangeText={setEmail}
+                          onChangeText={handleEmailChange}
                           onFocus={() => setEmailFocused(true)}
                           onBlur={() => setEmailFocused(false)}
                           keyboardType="email-address"
                           autoCapitalize="none"
                           autoCorrect={false}
                         />
+                        {emailValid && formSubmitted && (
+                          <Ionicons name="checkmark-circle" size={20} color="#27ae60" />
+                        )}
+                        {emailError && formSubmitted && (
+                          <Ionicons name="close-circle" size={20} color="#e74c3c" />
+                        )}
                       </View>
                     </LinearGradient>
                   </View>
+                  
+                  {/* Email Error Message */}
+                  <Animated.View 
+                    style={[
+                      styles.errorContainer,
+                      {
+                        opacity: emailErrorAnim,
+                        transform: [
+                          {
+                            translateY: emailErrorAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [-10, 0],
+                            }),
+                          },
+                        ],
+                      }
+                    ]}
+                  >
+                    <Ionicons name="warning" size={14} color="#e74c3c" />
+                    <Text style={styles.errorText}>{emailError}</Text>
+                  </Animated.View>
                 </View>
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Password</Text>
                   <View style={[
                     styles.inputWrapper,
-                    passwordFocused && styles.inputWrapperFocused
+                    (passwordFocused || passwordValid || (passwordError && formSubmitted)) && styles.inputWrapperFocused
                   ]}>
                     <LinearGradient
-                      colors={passwordFocused ? ['#667eea', '#764ba2'] : ['#f8f9fa', '#f1f3f4']}
+                      colors={getInputBorderColors(passwordValid, !!passwordError, passwordFocused) as [string, string]}
                       style={styles.inputGradientBorder}
                     >
                       <View style={styles.inputInner}>
                         <Ionicons 
                           name="lock-closed-outline" 
                           size={20} 
-                          color={passwordFocused ? "#667eea" : "#666"} 
+                          color={getIconColor(passwordValid, !!passwordError, passwordFocused)}
                           style={styles.inputIcon} 
                         />
                         <TextInput
@@ -263,7 +417,7 @@ export default function LoginScreen() {
                           placeholder="Enter your password"
                           placeholderTextColor="#999"
                           value={password}
-                          onChangeText={setPassword}
+                          onChangeText={handlePasswordChange}
                           onFocus={() => setPasswordFocused(true)}
                           onBlur={() => setPasswordFocused(false)}
                           secureTextEntry={!showPassword}
@@ -277,12 +431,39 @@ export default function LoginScreen() {
                           <Ionicons 
                             name={showPassword ? "eye-outline" : "eye-off-outline"} 
                             size={20} 
-                            color={passwordFocused ? "#667eea" : "#666"} 
+                            color={getIconColor(passwordValid, !!passwordError, passwordFocused)}
                           />
                         </TouchableOpacity>
+                        {passwordValid && formSubmitted && (
+                          <Ionicons name="checkmark-circle" size={20} color="#27ae60" style={styles.validationIcon} />
+                        )}
+                        {passwordError && formSubmitted && (
+                          <Ionicons name="close-circle" size={20} color="#e74c3c" style={styles.validationIcon} />
+                        )}
                       </View>
                     </LinearGradient>
                   </View>
+                  
+                  {/* Password Error Message */}
+                  <Animated.View 
+                    style={[
+                      styles.errorContainer,
+                      {
+                        opacity: passwordErrorAnim,
+                        transform: [
+                          {
+                            translateY: passwordErrorAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [-10, 0],
+                            }),
+                          },
+                        ],
+                      }
+                    ]}
+                  >
+                    <Ionicons name="warning" size={14} color="#e74c3c" />
+                    <Text style={styles.errorText}>{passwordError}</Text>
+                  </Animated.View>
                 </View>
 
                 <TouchableOpacity style={styles.forgotPassword}>
@@ -504,7 +685,7 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   inputLabel: {
     fontSize: 16,
@@ -546,9 +727,25 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 8,
   },
+  validationIcon: {
+    marginLeft: 8,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#e74c3c',
+    marginLeft: 6,
+    flex: 1,
+  },
   forgotPassword: {
     alignSelf: 'flex-end',
     marginBottom: 32,
+    marginTop: 8,
     borderRadius: 12,
     overflow: 'hidden',
   },
