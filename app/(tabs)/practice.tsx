@@ -81,8 +81,14 @@ export default function PracticeScreen() {
   };
 
   const handleCardPress = (testId: string) => {
-    // Navigate to practice test
-    console.log('Opening practice test:', testId);
+    // Navigate to practice test using proper router navigation
+    router.push({
+      pathname: '/test/[id]',
+      params: { id: testId }
+    });
+    if (Platform.OS === 'ios') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
   };
 
   const filteredTests = practiceTests.filter(
@@ -170,21 +176,62 @@ export default function PracticeScreen() {
           },
         ]}
       >
-        <View style={styles.headerContent}>
-          <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.headerTitle}>Practice Tests</Text>
-              <Text style={styles.headerSubtitle}>Master every section with confidence</Text>
+        <LinearGradient
+          colors={['#667eea', '#764ba2']}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerContent}>
+            <View style={styles.headerTop}>
+              <View>
+                <Text style={styles.headerTitle}>Practice Tests</Text>
+                <Text style={styles.headerSubtitle}>Master every section with confidence</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.refreshButton}
+                onPress={handleRefresh}
+                disabled={refreshing}
+              >
+                <Animated.View style={{ transform: [{ rotate: refreshing ? '360deg' : '0deg' }] }}>
+                  <Ionicons name="refresh" size={24} color="#fff" />
+                </Animated.View>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity 
-              style={styles.refreshButton}
-              onPress={handleRefresh}
-              disabled={refreshing}
-            >
-              <Animated.View style={{ transform: [{ rotate: refreshing ? '360deg' : '0deg' }] }}>
-                <Ionicons name="refresh" size={24} color="#fff" />
-              </Animated.View>
-            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      {/* Quick Stats */}
+      <Animated.View
+        style={[
+          styles.statsSection,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{filteredTests.length}</Text>
+            <Text style={styles.statLabel}>Available Tests</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>
+              {filteredTests.filter(t => t.progress > 0).length}
+            </Text>
+            <Text style={styles.statLabel}>In Progress</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>
+              {filteredTests.filter(t => t.progress === 100).length}
+            </Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>
+              {Math.round(filteredTests.reduce((acc, t) => acc + t.progress, 0) / filteredTests.length) || 0}%
+            </Text>
+            <Text style={styles.statLabel}>Avg Progress</Text>
           </View>
         </View>
       </Animated.View>
@@ -290,21 +337,47 @@ export default function PracticeScreen() {
                   </View>
                   
                   <View style={styles.progressContainer}>
-                    <View style={styles.progressBar}>
-                      <View style={[styles.progressFill, { width: `${test.progress}%` }]} />
+                    <View style={styles.progressHeader}>
+                      <Text style={styles.progressText}>{test.progress}% Complete</Text>
+                      {test.progress > 0 && (
+                        <View style={styles.progressBadge}>
+                          <Ionicons name="checkmark-circle" size={12} color="#4cd964" />
+                          <Text style={styles.progressBadgeText}>In Progress</Text>
+                        </View>
+                      )}
                     </View>
-                    <Text style={styles.progressText}>{test.progress}% Complete</Text>
+                    <View style={styles.progressBar}>
+                      <Animated.View 
+                        style={[
+                          styles.progressFill, 
+                          { 
+                            width: `${test.progress}%`,
+                            backgroundColor: test.progress === 100 ? '#4cd964' : '#fff'
+                          }
+                        ]} 
+                      />
+                    </View>
                   </View>
                   
                   <View style={styles.testActions}>
                     <TouchableOpacity 
-                      style={styles.startButton}
+                      style={[
+                        styles.startButton,
+                        test.progress === 100 && styles.completedButton
+                      ]}
                       onPress={() => handleCardPress(test.id)}
                     >
-                      <Text style={styles.startButtonText}>
-                        {test.progress > 0 ? 'Continue' : 'Start Test'}
+                      <Text style={[
+                        styles.startButtonText,
+                        test.progress === 100 && styles.completedButtonText
+                      ]}>
+                        {test.progress === 100 ? 'Review' : test.progress > 0 ? 'Continue' : 'Start Test'}
                       </Text>
-                      <Ionicons name="arrow-forward" size={16} color="#667eea" />
+                      <Ionicons 
+                        name={test.progress === 100 ? "refresh" : "arrow-forward"} 
+                        size={16} 
+                        color={test.progress === 100 ? "#4cd964" : "#667eea"} 
+                      />
                     </TouchableOpacity>
                   </View>
                 </LinearGradient>
@@ -404,6 +477,13 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
+    overflow: 'hidden',
+  },
+  headerGradient: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    margin: -20,
   },
   headerContent: {
     flexDirection: 'row',
@@ -413,12 +493,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#fff',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#666',
+    color: 'rgba(255,255,255,0.9)',
   },
   headerTop: {
     flexDirection: 'row',
@@ -534,6 +614,27 @@ const styles = StyleSheet.create({
   progressContainer: {
     marginTop: 12,
   },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  progressBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  progressBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFF',
+  },
   progressBar: {
     height: 6,
     backgroundColor: 'rgba(255,255,255,0.3)',
@@ -544,11 +645,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#FFF',
     borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFF',
   },
   testActions: {
     flexDirection: 'row',
@@ -567,6 +663,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFF',
+  },
+  completedButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  completedButtonText: {
+    color: '#4cd964',
   },
   modalContent: {
     alignItems: 'center',
@@ -587,5 +689,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 24,
     gap: 16,
+  },
+  statsSection: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e1e8ed',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#667eea',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
   },
 });
