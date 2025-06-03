@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
+    RefreshControl,
     SafeAreaView,
     ScrollView,
     StatusBar,
@@ -13,26 +14,21 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import AdvancedProgressChart from '../../components/AdvancedProgressChart';
-import DashboardCard from '../../components/DashboardCard';
-import SkeletonLoader from '../../components/SkeletonLoader';
 
 const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   
-  // Enhanced loading animations
+  // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const rotationAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const floatingAnim = useRef(new Animated.Value(0)).current;
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
   
-  // Staggered animation values for cards
+  // Card animations
   const cardAnims = useRef([
     new Animated.Value(0),
     new Animated.Value(0),
@@ -41,79 +37,41 @@ export default function HomeScreen() {
   ]).current;
 
   useEffect(() => {
-    // Start epic loading sequence
-    startLoadingAnimations();
-    
-    // Simulate data loading
+    // Update time every minute
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    // Start loading sequence
     const loadingTimer = setTimeout(() => {
       startContentAnimations();
       setIsLoading(false);
-    }, 3000);
+    }, 1500);
 
-    return () => clearTimeout(loadingTimer);
-  }, []);
-
-  const startLoadingAnimations = () => {
     // Continuous floating animation
     Animated.loop(
       Animated.sequence([
-        Animated.timing(floatingAnim, {
+        Animated.timing(floatAnim, {
           toValue: 1,
-          duration: 2000,
+          duration: 3000,
           useNativeDriver: true,
         }),
-        Animated.timing(floatingAnim, {
+        Animated.timing(floatAnim, {
           toValue: 0,
-          duration: 2000,
+          duration: 3000,
           useNativeDriver: true,
         }),
       ])
     ).start();
 
-    // Continuous rotation
-    Animated.loop(
-      Animated.timing(rotationAnim, {
-        toValue: 1,
-        duration: 4000,
-        useNativeDriver: true,
-      })
-    ).start();
-
-    // Pulsing background effect
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // Shimmer effect
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmerAnim, {
-          toValue: 1,
-          duration: 2500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shimmerAnim, {
-          toValue: 0,
-          duration: 2500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  };
+    return () => {
+      clearTimeout(loadingTimer);
+      clearInterval(timeInterval);
+    };
+  }, []);
 
   const startContentAnimations = () => {
-    // Main content fade in
+    // Main content animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -134,10 +92,10 @@ export default function HomeScreen() {
       }),
     ]).start();
 
-    // Staggered card animations - this is sick!
+    // Staggered card animations
     cardAnims.forEach((anim, index) => {
       Animated.sequence([
-        Animated.delay(index * 200),
+        Animated.delay(index * 150),
         Animated.spring(anim, {
           toValue: 1,
           tension: 100,
@@ -150,6 +108,7 @@ export default function HomeScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    setCurrentTime(new Date());
     
     // Reset animations
     cardAnims.forEach(anim => anim.setValue(0));
@@ -158,160 +117,124 @@ export default function HomeScreen() {
     scaleAnim.setValue(0.8);
     
     // Simulate refresh
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     setRefreshing(false);
     startContentAnimations();
   };
 
-  // Sick animated interpolations
-  const floatingTranslateY = floatingAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -15],
-  });
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
 
-  const rotation = rotationAnim.interpolate({
+  const floatingTransform = floatAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  const shimmerTranslateX = shimmerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-width, width],
+    outputRange: [0, -8],
   });
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#667eea" />
         
-        {/* Epic loading background */}
-        <Animated.View style={[styles.loadingBackground, { transform: [{ scale: pulseAnim }] }]}>
-          <LinearGradient
-            colors={['#667eea', '#764ba2', '#f093fb']}
-            style={StyleSheet.absoluteFillObject}
-          />
-          
-          {/* Shimmer overlay */}
+        <LinearGradient
+          colors={['#667eea', '#764ba2', '#f093fb']}
+          style={styles.loadingContainer}
+        >
           <Animated.View
             style={[
-              styles.shimmerOverlay,
-              { transform: [{ translateX: shimmerTranslateX }] }
+              styles.loadingContent,
+              { transform: [{ translateY: floatingTransform }] }
             ]}
           >
-            <LinearGradient
-              colors={['transparent', 'rgba(255,255,255,0.3)', 'transparent']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={StyleSheet.absoluteFillObject}
-            />
-          </Animated.View>
-        </Animated.View>
-
-        {/* Floating loading indicator */}
-        <Animated.View
-          style={[
-            styles.loadingIndicator,
-            {
-              transform: [
-                { translateY: floatingTranslateY },
-                { rotate: rotation },
-              ],
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={['#fff', '#f8f9fa']}
-            style={styles.loadingCircle}
-          >
-            <Ionicons name="rocket" size={32} color="#667eea" />
-          </LinearGradient>
-        </Animated.View>
-
-        <Text style={styles.loadingText}>Loading something epic...</Text>
-        
-        {/* Animated dots */}
-        <View style={styles.loadingDots}>
-          {[0, 1, 2].map((index) => (
-            <Animated.View
-              key={index}
-              style={[
-                styles.dot,
-                {
-                  opacity: shimmerAnim,
-                  transform: [
+            <View style={styles.loadingIcon}>
+              <Ionicons name="rocket" size={40} color="#fff" />
+            </View>
+            <Text style={styles.loadingText}>Loading your dashboard...</Text>
+            <View style={styles.loadingDots}>
+              {[0, 1, 2].map((index) => (
+                <Animated.View
+                  key={index}
+                  style={[
+                    styles.dot,
                     {
-                      scale: shimmerAnim.interpolate({
+                      opacity: floatAnim.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0.5, 1.5],
+                        outputRange: [0.3, 1],
                       }),
+                      transform: [
+                        {
+                          scale: floatAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.8, 1.2],
+                          }),
+                        },
+                      ],
                     },
-                  ],
-                },
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Loading skeleton preview */}
-        <View style={styles.skeletonPreview}>
-          <SkeletonLoader variant="card" count={2} />
-        </View>
-      </View>
+                  ]}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        </LinearGradient>
+      </SafeAreaView>
     );
   }
 
-  const features = [
+  const quickActions = [
     {
-      title: 'Practice Tests',
-      description: 'Full-length SAT practice tests with detailed explanations',
+      title: 'Practice Test',
+      description: 'Take a full SAT practice test',
       icon: 'document-text',
       route: '/(tabs)/practice',
-      color: '#6C5CE7',
-      bgGradient: ['#6C5CE7', '#A29BFE'] as const,
+      gradient: ['#667eea', '#764ba2'] as const,
     },
     {
       title: 'Vocabulary',
-      description: 'Master essential SAT vocabulary words',
+      description: 'Learn new SAT words',
       icon: 'book',
-      route: '/(tabs)/resources',
-      color: '#00CEC9',
-      bgGradient: ['#00CEC9', '#55EFC4'] as const,
+      route: '/(tabs)/vocabpractice',
+      gradient: ['#00c9ff', '#92fe9d'] as const,
     },
     {
-      title: 'Math Mastery',
-      description: 'Learn key formulas and problem-solving strategies',
-      icon: 'calculator',
+      title: 'Resources',
+      description: 'Study materials & guides',
+      icon: 'library',
       route: '/(tabs)/resources',
-      color: '#FD79A8',
-      bgGradient: ['#FD79A8', '#FDCB6E'] as const,
+      gradient: ['#fc466b', '#3f5efb'] as const,
     },
     {
-      title: 'Reading Skills',
-      description: 'Improve your critical reading skills',
-      icon: 'glasses',
-      route: '/(tabs)/resources',
-      color: '#E17055',
-      bgGradient: ['#E17055', '#FDCB6E'] as const,
+      title: 'AI Tutor',
+      description: 'Get personalized help',
+      icon: 'school',
+      route: '/(tabs)/tutor',
+      gradient: ['#fdbb2d', '#22c1c3'] as const,
     },
-  ];
-
-  const stats = [
-    { label: 'Questions Solved', value: '1,247', icon: 'checkmark-circle', color: '#00CEC9' },
-    { label: 'Study Streak', value: '12 days', icon: 'flame', color: '#E17055' },
-    { label: 'Score Progress', value: '+180', icon: 'trending-up', color: '#6C5CE7' },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#667eea" />
+      
       <ScrollView 
-        style={styles.scrollView} 
+        style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
-        refreshControl={refreshing ? <SkeletonLoader variant="card" count={1} /> : undefined}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#667eea']}
+            tintColor="#667eea"
+            title="Pull to refresh"
+            titleColor="#667eea"
+          />
+        }
       >
-        {/* Hero Section with Advanced Gradient & Animations */}
+        {/* Hero Section */}
         <Animated.View 
           style={[
             styles.hero,
@@ -323,37 +246,31 @@ export default function HomeScreen() {
         >
           <LinearGradient
             colors={['#667eea', '#764ba2']}
-            style={StyleSheet.absoluteFillObject}
+            style={styles.heroGradient}
           >
             <View style={styles.heroContent}>
-              <Text style={styles.greeting}>Good morning, Rudra! 👋</Text>
-              <Text style={styles.subtitle}>Ready to ace your SAT?</Text>
+              <Text style={styles.greeting}>{getGreeting()}, Rudra! 👋</Text>
+              <Text style={styles.subtitle}>Ready to boost your SAT score?</Text>
               
-              <TouchableOpacity 
-                style={styles.refreshButton}
-                onPress={handleRefresh}
-                disabled={refreshing}
-              >
-                <Animated.View style={{ transform: [{ rotate: refreshing ? rotation : '0deg' }] }}>
-                  <Ionicons name="refresh" size={20} color="#fff" />
-                </Animated.View>
-                <Text style={styles.refreshText}>
-                  {refreshing ? 'Refreshing...' : 'Refresh'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.streakContainer}>
+                <View style={styles.streakIcon}>
+                  <Ionicons name="flame" size={20} color="#ff6b6b" />
+                </View>
+                <Text style={styles.streakText}>7-day study streak! 🔥</Text>
+              </View>
             </View>
           </LinearGradient>
         </Animated.View>
 
         {/* Stats Section */}
-        <View style={styles.statsContainer}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Your Progress</Text>
           <View style={styles.statsGrid}>
             {[
-              { title: 'Current Score', value: '1240', icon: 'trending-up', color: ['#4facfe', '#00f2fe'] },
-              { title: 'Practice Tests', value: '12', icon: 'document-text', color: ['#43e97b', '#38f9d7'] },
-              { title: 'Study Streak', value: '7 days', icon: 'flame', color: ['#fa709a', '#fee140'] },
-              { title: 'Target Score', value: '1500', icon: 'star', color: ['#a8edea', '#fed6e3'] },
+              { title: 'Current Score', value: '1,240', icon: 'trending-up', gradient: ['#4facfe', '#00f2fe'] as const, change: '+45' },
+              { title: 'Practice Tests', value: '12', icon: 'document-text', gradient: ['#43e97b', '#38f9d7'] as const, change: '+3' },
+              { title: 'Study Hours', value: '42h', icon: 'time', gradient: ['#fa709a', '#fee140'] as const, change: '+8h' },
+              { title: 'Accuracy', value: '78%', icon: 'checkmark-circle', gradient: ['#a8edea', '#fed6e3'] as const, change: '+12%' },
             ].map((stat, index) => (
               <Animated.View
                 key={stat.title}
@@ -371,47 +288,50 @@ export default function HomeScreen() {
                       {
                         translateY: cardAnims[index].interpolate({
                           inputRange: [0, 1],
-                          outputRange: [50, 0],
+                          outputRange: [30, 0],
                         }),
                       },
                     ],
                   },
                 ]}
               >
-                <DashboardCard
-                  title={stat.title}
-                  value={stat.value}
-                  icon={stat.icon as any}
-                  gradient={stat.color as [string, string]}
-                  trend={index === 0 ? { value: '+45 this week', direction: 'up' } : undefined}
-                />
+                <TouchableOpacity style={styles.statCardInner} activeOpacity={0.8}>
+                  <LinearGradient
+                    colors={stat.gradient}
+                    style={styles.statCardGradient}
+                  >
+                    <View style={styles.statHeader}>
+                      <Ionicons name={stat.icon as any} size={24} color="#fff" />
+                      <Text style={styles.statChange}>+{stat.change}</Text>
+                    </View>
+                    <Text style={styles.statValue}>{stat.value}</Text>
+                    <Text style={styles.statTitle}>{stat.title}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               </Animated.View>
             ))}
           </View>
         </View>
 
-        {/* Features Section with Advanced Cards */}
+        {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Explore Features</Text>
-          <View style={styles.featuresContainer}>
-            {features.map((feature, index) => (
-              <Link key={index} href={feature.route as any} asChild>
-                <TouchableOpacity style={styles.featureCard} activeOpacity={0.9}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.actionsGrid}>
+            {quickActions.map((action, index) => (
+              <Link key={action.title} href={action.route as any} asChild>
+                <TouchableOpacity 
+                  style={styles.actionCard}
+                  activeOpacity={0.8}
+                >
                   <LinearGradient
-                    colors={feature.bgGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.featureCardGradient}
+                    colors={action.gradient}
+                    style={styles.actionGradient}
                   >
-                    <View style={styles.featureIconContainer}>
-                      <Ionicons name={feature.icon as any} size={28} color="#FFF" />
+                    <View style={styles.actionIcon}>
+                      <Ionicons name={action.icon as any} size={28} color="#fff" />
                     </View>
-                    <Text style={styles.featureTitle}>{feature.title}</Text>
-                    <Text style={styles.featureDescription}>{feature.description}</Text>
-                    
-                    <View style={styles.featureArrow}>
-                      <Ionicons name="arrow-forward" size={16} color="#FFF" />
-                    </View>
+                    <Text style={styles.actionTitle}>{action.title}</Text>
+                    <Text style={styles.actionDescription}>{action.description}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </Link>
@@ -419,83 +339,30 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Premium Study Plan Card */}
+        {/* Recent Activity */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recommended Plan</Text>
-          <View style={styles.premiumCard}>
-            <LinearGradient
-              colors={['#667eea', '#764ba2'] as const}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.premiumCardGradient}
-            >
-              <View style={styles.premiumBadge}>
-                <Text style={styles.premiumBadgeText}>✨ PREMIUM</Text>
-              </View>
-              
-              <Text style={styles.premiumTitle}>30-Day SAT Mastery</Text>
-              <Text style={styles.premiumDescription}>
-                Intensive preparation plan designed by SAT experts to boost your score significantly.
-              </Text>
-              
-              <View style={styles.premiumFeatures}>
-                <View style={styles.premiumFeature}>
-                  <Ionicons name="checkmark-circle" size={16} color="#4ECDC4" />
-                  <Text style={styles.premiumFeatureText}>Daily practice tests</Text>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <View style={styles.activityContainer}>
+            {[
+              { title: 'Completed Math Practice', time: '2 hours ago', icon: 'calculator', color: '#667eea' },
+              { title: 'Learned 15 new vocabulary words', time: '1 day ago', icon: 'book', color: '#00c9ff' },
+              { title: 'Scored 1280 on practice test', time: '3 days ago', icon: 'trophy', color: '#fdbb2d' },
+            ].map((activity, index) => (
+              <View key={index} style={styles.activityItem}>
+                <View style={[styles.activityIcon, { backgroundColor: activity.color }]}>
+                  <Ionicons name={activity.icon as any} size={20} color="#fff" />
                 </View>
-                <View style={styles.premiumFeature}>
-                  <Ionicons name="checkmark-circle" size={16} color="#4ECDC4" />
-                  <Text style={styles.premiumFeatureText}>Video explanations</Text>
-                </View>
-                <View style={styles.premiumFeature}>
-                  <Ionicons name="checkmark-circle" size={16} color="#4ECDC4" />
-                  <Text style={styles.premiumFeatureText}>Progress tracking</Text>
+                <View style={styles.activityContent}>
+                  <Text style={styles.activityTitle}>{activity.title}</Text>
+                  <Text style={styles.activityTime}>{activity.time}</Text>
                 </View>
               </View>
-              
-              <TouchableOpacity style={styles.premiumButton} activeOpacity={0.8}>
-                <LinearGradient
-                  colors={['#4ECDC4', '#44A08D'] as const}
-                  style={styles.premiumButtonGradient}
-                >
-                  <Text style={styles.premiumButtonText}>Start Free Trial</Text>
-                  <Ionicons name="arrow-forward" size={18} color="#FFF" />
-                </LinearGradient>
-              </TouchableOpacity>
-            </LinearGradient>
+            ))}
           </View>
         </View>
 
-        {/* Enhanced Progress Chart */}
-        <View style={styles.chartContainer}>
-          <Text style={styles.sectionTitle}>Performance Overview</Text>
-          <AdvancedProgressChart
-            data={[
-              { 
-                label: 'Math', 
-                value: 720, 
-                maxValue: 800, 
-                color: '#4facfe', 
-                gradient: ['#4facfe', '#00f2fe'] as const 
-              },
-              { 
-                label: 'Reading', 
-                value: 680, 
-                maxValue: 750, 
-                color: '#43e97b', 
-                gradient: ['#43e97b', '#38f9d7'] as const 
-              },
-              { 
-                label: 'Writing', 
-                value: 650, 
-                maxValue: 700, 
-                color: '#fa709a', 
-                gradient: ['#fa709a', '#fee140'] as const 
-              },
-            ]}
-            title="SAT Score Progress"
-          />
-        </View>
+        {/* Bottom spacing for tab bar */}
+        <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -506,24 +373,60 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingContent: {
+    alignItems: 'center',
+  },
+  loadingIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 20,
+  },
+  loadingDots: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+  },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 40,
+    paddingHorizontal: 20,
   },
   hero: {
-    marginHorizontal: 16,
-    marginTop: 16,
+    marginTop: 20,
+    marginBottom: 30,
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#667eea',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  heroGradient: {
+    padding: 25,
   },
   heroContent: {
-    paddingHorizontal: 24,
     alignItems: 'center',
   },
   greeting: {
@@ -536,213 +439,161 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.9)',
-    marginBottom: 20,
     textAlign: 'center',
+    marginBottom: 20,
   },
-  refreshButton: {
+  streakContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
   },
-  refreshText: {
+  streakIcon: {
+    marginRight: 8,
+  },
+  streakText: {
     color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
   },
-  statsContainer: {
-    padding: 20,
+  section: {
+    marginBottom: 30,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#333',
     marginBottom: 16,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
     gap: 12,
   },
   statCard: {
-    width: (width - 52) / 2,
+    width: (width - 56) / 2,
   },
-  section: {
-    margin: 16,
+  statCardInner: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  featuresContainer: {
+  statCardGradient: {
+    padding: 16,
+    minHeight: 100,
+  },
+  statHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statChange: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  statTitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '500',
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  featureCard: {
-    width: (width - 48) / 2,
+  actionCard: {
+    width: (width - 56) / 2,
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  featureCardGradient: {
+  actionGradient: {
     padding: 20,
-    minHeight: 160,
-    position: 'relative',
-  },
-  featureIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
+    minHeight: 120,
+  },
+  actionIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 12,
   },
-  featureTitle: {
+  actionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFF',
-    marginBottom: 6,
-  },
-  featureDescription: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.9)',
-    lineHeight: 18,
-  },
-  featureArrow: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  premiumCard: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 12,
-  },
-  premiumCardGradient: {
-    padding: 24,
-    position: 'relative',
-  },
-  premiumBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-  premiumBadgeText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  premiumTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FFF',
-    marginBottom: 8,
-  },
-  premiumDescription: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  premiumFeatures: {
-    marginBottom: 24,
-  },
-  premiumFeature: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
-  },
-  premiumFeatureText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  premiumButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  premiumButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    gap: 8,
-  },
-  premiumButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  chartContainer: {
-    padding: 20,
-    paddingTop: 0,
-  },
-  loadingBackground: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  shimmerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  loadingIndicator: {
-    position: 'absolute',
-    top: height * 0.4,
-    alignSelf: 'center',
-  },
-  loadingCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  loadingText: {
-    position: 'absolute',
-    top: height * 0.55,
-    alignSelf: 'center',
-    fontSize: 18,
-    fontWeight: '600',
     color: '#fff',
     textAlign: 'center',
+    marginBottom: 4,
   },
-  loadingDots: {
-    position: 'absolute',
-    top: height * 0.6,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    gap: 8,
+  actionDescription: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  activityContainer: {
     backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  skeletonPreview: {
-    position: 'absolute',
-    bottom: 50,
-    left: 20,
-    right: 20,
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  activityIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: '#666',
+  },
+  bottomSpacing: {
+    height: 120,
   },
 });
