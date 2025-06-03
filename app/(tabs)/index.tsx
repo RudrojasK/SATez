@@ -360,9 +360,6 @@ export default function HomeScreen() {
             ))}
           </View>
         </View>
-
-        {/* Bottom spacing for tab bar */}
-        <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -592,8 +589,5 @@ const styles = StyleSheet.create({
   activityTime: {
     fontSize: 12,
     color: '#666',
-  },
-  bottomSpacing: {
-    height: 120,
   },
 });
