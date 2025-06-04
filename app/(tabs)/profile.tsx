@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -11,6 +11,7 @@ import {
     StatusBar,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -22,6 +23,17 @@ export default function ProfileScreen() {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const avatarScale = useRef(new Animated.Value(1)).current;
+  
+  // New state for edit profile
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [userName, setUserName] = useState('Alex Johnson');
+  const [userEmail, setUserEmail] = useState('alex.johnson@example.com');
+  const [targetScore, setTargetScore] = useState('1500');
+  
+  // Settings state
+  const [notifications, setNotifications] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+  const [hapticFeedback, setHapticFeedback] = useState(true);
 
   useEffect(() => {
     Animated.parallel([
@@ -64,30 +76,38 @@ export default function ProfileScreen() {
     {
       label: 'Tests Completed',
       value: '23',
+      target: '30',
       icon: 'checkmark-circle',
       color: '#4CD964',
       gradient: ['#4CD964', '#5AC8FA'] as const,
+      progress: 0.77,
     },
     {
       label: 'Current Streak',
       value: '12 days',
+      target: '30 days',
       icon: 'flame',
       color: '#FF9500',
       gradient: ['#FF9500', '#FF6B6B'] as const,
+      progress: 0.4,
     },
     {
       label: 'Score Improvement',
       value: '+180',
+      target: '+300',
       icon: 'trending-up',
       color: '#6C5CE7',
       gradient: ['#6C5CE7', '#A29BFE'] as const,
+      progress: 0.6,
     },
     {
       label: 'Study Hours',
       value: '47h',
+      target: '100h',
       icon: 'time',
       color: '#00CEC9',
       gradient: ['#00CEC9', '#55EFC4'] as const,
+      progress: 0.47,
     },
   ];
 
@@ -188,6 +208,19 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.statValue}>{stat.value}</Text>
           <Text style={styles.statLabel}>{stat.label}</Text>
+          
+          {/* Progress indicator */}
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <Animated.View 
+                style={[
+                  styles.progressFill,
+                  { width: `${stat.progress * 100}%` }
+                ]} 
+              />
+            </View>
+            <Text style={styles.progressText}>{stat.target}</Text>
+          </View>
           
           {/* Decorative elements */}
           <View style={styles.statDecor1} />
@@ -315,12 +348,20 @@ export default function ProfileScreen() {
                 </LinearGradient>
               </Animated.View>
               
-              <Text style={styles.userName}>Alex Johnson</Text>
-              <Text style={styles.userEmail}>alex.johnson@example.com</Text>
+              <Text style={styles.userName}>{userName}</Text>
+              <Text style={styles.userEmail}>{userEmail}</Text>
+              
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={() => setShowEditModal(true)}
+              >
+                <Ionicons name="create-outline" size={16} color="#FFF" />
+                <Text style={styles.editButtonText}>Edit Profile</Text>
+              </TouchableOpacity>
               
               <View style={styles.targetScoreContainer}>
                 <Text style={styles.targetScoreLabel}>Target Score</Text>
-                <Text style={styles.targetScore}>1500</Text>
+                <Text style={styles.targetScore}>{targetScore}</Text>
               </View>
             </View>
             
@@ -374,6 +415,59 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
+        {/* Quick Settings Section */}
+        <Animated.View
+          style={[
+            styles.settingsSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <Text style={styles.sectionTitle}>Quick Settings</Text>
+          <View style={styles.settingsCard}>
+            <View style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <Ionicons name="notifications" size={20} color="#6C5CE7" />
+                <Text style={styles.settingText}>Notifications</Text>
+              </View>
+              <TouchableOpacity 
+                style={[styles.toggle, notifications && styles.toggleActive]}
+                onPress={() => setNotifications(!notifications)}
+              >
+                <View style={[styles.toggleThumb, notifications && styles.toggleThumbActive]} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <Ionicons name="moon" size={20} color="#6C5CE7" />
+                <Text style={styles.settingText}>Dark Mode</Text>
+              </View>
+              <TouchableOpacity 
+                style={[styles.toggle, darkMode && styles.toggleActive]}
+                onPress={() => setDarkMode(!darkMode)}
+              >
+                <View style={[styles.toggleThumb, darkMode && styles.toggleThumbActive]} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <Ionicons name="phone-portrait" size={20} color="#6C5CE7" />
+                <Text style={styles.settingText}>Haptic Feedback</Text>
+              </View>
+              <TouchableOpacity 
+                style={[styles.toggle, hapticFeedback && styles.toggleActive]}
+                onPress={() => setHapticFeedback(!hapticFeedback)}
+              >
+                <View style={[styles.toggleThumb, hapticFeedback && styles.toggleThumbActive]} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
+
         {/* Menu Section */}
         <Animated.View
           style={[
@@ -391,6 +485,64 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
       </ScrollView>
+
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => setShowEditModal(false)}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalContent}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Name</Text>
+                <TextInput 
+                  style={styles.input}
+                  value={userName}
+                  onChangeText={setUserName}
+                  placeholder="Enter your name"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Email</Text>
+                <TextInput 
+                  style={styles.input}
+                  value={userEmail}
+                  onChangeText={setUserEmail}
+                  placeholder="Enter your email"
+                  keyboardType="email-address"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Target Score</Text>
+                <TextInput 
+                  style={styles.input}
+                  value={targetScore}
+                  onChangeText={setTargetScore}
+                  placeholder="Enter target score"
+                  keyboardType="numeric"
+                />
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.saveButton}
+                onPress={() => setShowEditModal(false)}
+              >
+                <Text style={styles.saveButtonText}>Save Changes</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -538,6 +690,27 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  progressBar: {
+    flex: 1,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 6,
+    backgroundColor: '#FFF',
+  },
+  progressText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginLeft: 8,
+  },
   statDecor1: {
     position: 'absolute',
     width: 40,
@@ -669,5 +842,129 @@ const styles = StyleSheet.create({
   menuItemDescription: {
     fontSize: 14,
     color: '#8E8E93',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+  },
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    width: '80%',
+    maxWidth: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalContent: {
+    // Add any additional styles for the modal content
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#8E8E93',
+    borderRadius: 8,
+    padding: 12,
+  },
+  saveButton: {
+    backgroundColor: '#6C5CE7',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  settingsSection: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+  },
+  settingsCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  settingText: {
+    fontSize: 14,
+    color: '#1a1a1a',
+  },
+  toggle: {
+    width: 40,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleActive: {
+    backgroundColor: '#6C5CE7',
+  },
+  toggleThumb: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFF',
+  },
+  toggleThumbActive: {
+    backgroundColor: '#FFF',
   },
 });

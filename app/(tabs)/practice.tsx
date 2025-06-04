@@ -146,12 +146,15 @@ export default function PracticeScreen() {
         <View style={styles.header}>
           <LinearGradient
             colors={['#667eea', '#764ba2']}
-            style={StyleSheet.absoluteFillObject}
-          />
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Practice Tests</Text>
-            <Text style={styles.headerSubtitle}>Loading your personalized content...</Text>
-          </View>
+            style={styles.headerGradient}
+          >
+            <View style={styles.headerTop}>
+              <View>
+                <Text style={styles.headerTitle}>Practice Tests</Text>
+                <Text style={styles.headerSubtitle}>Loading your personalized content...</Text>
+              </View>
+            </View>
+          </LinearGradient>
         </View>
 
         {/* Loading Content */}
@@ -167,38 +170,28 @@ export default function PracticeScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
       
       {/* Header */}
-      <Animated.View
-        style={[
-          styles.header,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
+      <View style={styles.header}>
         <LinearGradient
           colors={['#667eea', '#764ba2']}
           style={styles.headerGradient}
         >
-          <View style={styles.headerContent}>
-            <View style={styles.headerTop}>
-              <View>
-                <Text style={styles.headerTitle}>Practice Tests</Text>
-                <Text style={styles.headerSubtitle}>Master every section with confidence</Text>
-              </View>
-              <TouchableOpacity 
-                style={styles.refreshButton}
-                onPress={handleRefresh}
-                disabled={refreshing}
-              >
-                <Animated.View style={{ transform: [{ rotate: refreshing ? '360deg' : '0deg' }] }}>
-                  <Ionicons name="refresh" size={24} color="#fff" />
-                </Animated.View>
-              </TouchableOpacity>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.headerTitle}>Practice Tests</Text>
+              <Text style={styles.headerSubtitle}>Master every section with confidence</Text>
             </View>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={handleRefresh}
+              disabled={refreshing}
+            >
+              <Animated.View style={{ transform: [{ rotate: refreshing ? '360deg' : '0deg' }] }}>
+                <Ionicons name="refresh" size={24} color="#fff" />
+              </Animated.View>
+            </TouchableOpacity>
           </View>
         </LinearGradient>
-      </Animated.View>
+      </View>
 
       {/* Quick Stats */}
       <Animated.View
@@ -311,77 +304,75 @@ export default function PracticeScreen() {
                 },
               ]}
             >
-              <TouchableOpacity onPress={() => openModal('spring')} activeOpacity={0.9}>
-                <LinearGradient
-                  colors={['#667eea', '#764ba2']}
-                  style={styles.testGradient}
-                >
-                  <View style={styles.testHeader}>
-                    <Text style={styles.testTitle}>{test.title}</Text>
-                    <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(test.difficulty) }]}>
-                      <Text style={styles.difficultyText}>{test.difficulty}</Text>
-                    </View>
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                style={styles.testGradient}
+              >
+                <View style={styles.testHeader}>
+                  <Text style={styles.testTitle}>{test.title}</Text>
+                  <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(test.difficulty) }]}>
+                    <Text style={styles.difficultyText}>{test.difficulty}</Text>
                   </View>
-                  
-                  <Text style={styles.testDescription}>{test.description}</Text>
-                  
-                  <View style={styles.testMeta}>
-                    <View style={styles.metaItem}>
-                      <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.8)" />
-                      <Text style={styles.metaText}>{test.timeEstimate}</Text>
-                    </View>
-                    <View style={styles.metaItem}>
-                      <Ionicons name="help-circle-outline" size={16} color="rgba(255,255,255,0.8)" />
-                      <Text style={styles.metaText}>{test.type}</Text>
-                    </View>
+                </View>
+                
+                <Text style={styles.testDescription}>{test.description}</Text>
+                
+                <View style={styles.testMeta}>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.8)" />
+                    <Text style={styles.metaText}>{test.timeEstimate}</Text>
                   </View>
-                  
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressHeader}>
-                      <Text style={styles.progressText}>{test.progress}% Complete</Text>
-                      {test.progress > 0 && (
-                        <View style={styles.progressBadge}>
-                          <Ionicons name="checkmark-circle" size={12} color="#4cd964" />
-                          <Text style={styles.progressBadgeText}>In Progress</Text>
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.progressBar}>
-                      <Animated.View 
-                        style={[
-                          styles.progressFill, 
-                          { 
-                            width: `${test.progress}%`,
-                            backgroundColor: test.progress === 100 ? '#4cd964' : '#fff'
-                          }
-                        ]} 
-                      />
-                    </View>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="help-circle-outline" size={16} color="rgba(255,255,255,0.8)" />
+                    <Text style={styles.metaText}>{test.type}</Text>
                   </View>
-                  
-                  <View style={styles.testActions}>
-                    <TouchableOpacity 
+                </View>
+                
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressHeader}>
+                    <Text style={styles.progressText}>{test.progress}% Complete</Text>
+                    {test.progress > 0 && (
+                      <View style={styles.progressBadge}>
+                        <Ionicons name="checkmark-circle" size={12} color="#4cd964" />
+                        <Text style={styles.progressBadgeText}>In Progress</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.progressBar}>
+                    <Animated.View 
                       style={[
-                        styles.startButton,
-                        test.progress === 100 && styles.completedButton
-                      ]}
-                      onPress={() => handleCardPress(test.id)}
-                    >
-                      <Text style={[
-                        styles.startButtonText,
-                        test.progress === 100 && styles.completedButtonText
-                      ]}>
-                        {test.progress === 100 ? 'Review' : test.progress > 0 ? 'Continue' : 'Start Test'}
-                      </Text>
-                      <Ionicons 
-                        name={test.progress === 100 ? "refresh" : "arrow-forward"} 
-                        size={16} 
-                        color={test.progress === 100 ? "#4cd964" : "#667eea"} 
-                      />
-                    </TouchableOpacity>
+                        styles.progressFill, 
+                        { 
+                          width: `${test.progress}%`,
+                          backgroundColor: test.progress === 100 ? '#4cd964' : '#fff'
+                        }
+                      ]} 
+                    />
                   </View>
-                </LinearGradient>
-              </TouchableOpacity>
+                </View>
+                
+                <View style={styles.testActions}>
+                  <TouchableOpacity 
+                    style={[
+                      styles.startButton,
+                      test.progress === 100 && styles.completedButton
+                    ]}
+                    onPress={() => handleCardPress(test.id)}
+                  >
+                    <Text style={[
+                      styles.startButtonText,
+                      test.progress === 100 && styles.completedButtonText
+                    ]}>
+                      {test.progress === 100 ? 'Review' : test.progress > 0 ? 'Continue' : 'Start Test'}
+                    </Text>
+                    <Ionicons 
+                      name={test.progress === 100 ? "refresh" : "arrow-forward"} 
+                      size={16} 
+                      color={test.progress === 100 ? "#4cd964" : "#667eea"} 
+                    />
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
             </Animated.View>
           ))
         )}
@@ -475,20 +466,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    overflow: 'hidden',
+    backgroundColor: 'transparent',
   },
   headerGradient: {
-    flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    margin: -20,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    paddingVertical: 20,
+    paddingTop: 40,
   },
   headerTitle: {
     fontSize: 28,
@@ -696,6 +679,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e1e8ed',
+    marginTop: 0,
   },
   statsContainer: {
     flexDirection: 'row',
