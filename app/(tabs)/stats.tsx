@@ -107,29 +107,31 @@ export default function StatsScreen() {
               colors={['#ff6b6b', '#ee5a52']}
               style={styles.goalGradient}
             >
-              <View style={styles.goalHeader}>
-                <Ionicons name="calendar" size={20} color="#fff" />
-                <Text style={styles.goalTitle}>This Week</Text>
-                <TouchableOpacity onPress={handleRefresh}>
-                  <Ionicons name="refresh" size={18} color="#fff" />
-                </TouchableOpacity>
+              <View style={styles.goalContent}>
+                <View style={styles.goalHeader}>
+                  <Ionicons name="calendar" size={20} color="#fff" />
+                  <Text style={styles.goalTitle}>This Week</Text>
+                  <TouchableOpacity onPress={handleRefresh}>
+                    <Ionicons name="refresh" size={18} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.goalProgress}>
+                  {userData.currentWeekHours}h / {userData.weeklyGoal}h
+                </Text>
+                <View style={styles.progressBar}>
+                  <Animated.View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${Math.min((userData.currentWeekHours / userData.weeklyGoal) * 100, 100)}%`,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.goalPercentage}>
+                  {Math.round((userData.currentWeekHours / userData.weeklyGoal) * 100)}% Complete
+                </Text>
               </View>
-              <Text style={styles.goalProgress}>
-                {userData.currentWeekHours}h / {userData.weeklyGoal}h
-              </Text>
-              <View style={styles.progressBar}>
-                <Animated.View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${Math.min((userData.currentWeekHours / userData.weeklyGoal) * 100, 100)}%`,
-                    },
-                  ]}
-                />
-              </View>
-              <Text style={styles.goalPercentage}>
-                {Math.round((userData.currentWeekHours / userData.weeklyGoal) * 100)}% Complete
-              </Text>
             </LinearGradient>
           </View>
         </Animated.View>
@@ -142,25 +144,29 @@ export default function StatsScreen() {
               colors={['#667eea', '#764ba2']}
               style={styles.scoreGradient}
             >
-              <View style={styles.scoreHeader}>
-                <View style={styles.scoreBadge}>
-                  <Text style={styles.scoreBadgeText}>SAT</Text>
+              <View style={styles.scoreContent}>
+                <View style={styles.scoreHeader}>
+                  <View style={styles.scoreBadge}>
+                    <Text style={styles.scoreBadgeText}>SAT</Text>
+                  </View>
+                  <View style={styles.scoreDisplay}>
+                    <Text style={styles.scoreTotal}>{userData.totalScore}</Text>
+                    <Text style={styles.scoreLabel}>Total Score</Text>
+                  </View>
                 </View>
-                <Text style={styles.scoreTotal}>{userData.totalScore}</Text>
-                <Text style={styles.scoreLabel}>Total Score</Text>
+                <View style={styles.scoreBreakdown}>
+                  <View style={styles.scoreSection}>
+                    <Text style={styles.scoreSectionValue}>{userData.readingScore}</Text>
+                    <Text style={styles.scoreSectionLabel}>Reading & Writing</Text>
+                  </View>
+                  <View style={styles.divider} />
+                  <View style={styles.scoreSection}>
+                    <Text style={styles.scoreSectionValue}>{userData.mathScore}</Text>
+                    <Text style={styles.scoreSectionLabel}>Math</Text>
+                  </View>
+                </View>
               </View>
             </LinearGradient>
-            <View style={styles.scoreBreakdown}>
-              <View style={styles.scoreSection}>
-                <Text style={styles.scoreSectionValue}>{userData.readingScore}</Text>
-                <Text style={styles.scoreSectionLabel}>Reading & Writing</Text>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.scoreSection}>
-                <Text style={styles.scoreSectionValue}>{userData.mathScore}</Text>
-                <Text style={styles.scoreSectionLabel}>Math</Text>
-              </View>
-            </View>
           </View>
         </View>
 
@@ -279,7 +285,7 @@ export default function StatsScreen() {
         </View>
 
         {/* Simple Tip Section */}
-        <View style={styles.section}>
+        <View style={[styles.section, styles.lastSection]}>
           <View style={styles.tipCard}>
             <LinearGradient
               colors={['#667eea', '#764ba2']}
@@ -302,14 +308,16 @@ export default function StatsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
   },
   header: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
   headerGradient: {
     padding: 20,
-    borderRadius: 10,
+    borderRadius: 15,
   },
   headerContent: {
     flexDirection: 'row',
@@ -320,11 +328,11 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#fff',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   scoreContainer: {
     alignItems: 'flex-end',
@@ -336,11 +344,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   scoreLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
   },
   scrollView: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
   },
   section: {
     marginBottom: 24,
@@ -349,84 +358,103 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   goalCard: {
-    padding: 0,
+    borderRadius: 15,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   goalGradient: {
-    borderRadius: 10,
-    overflow: 'hidden',
+    borderRadius: 15,
+  },
+  goalContent: {
+    padding: 20,
   },
   goalHeader: {
-    backgroundColor: 'rgba(0, 0, 0, 0.02)',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 16,
   },
   goalTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#fff',
     marginLeft: 8,
+    flex: 1,
   },
   goalProgress: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    color: '#fff',
+    marginBottom: 12,
   },
   progressBar: {
-    height: 10,
-    backgroundColor: '#ddd',
-    borderRadius: 5,
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
     overflow: 'hidden',
+    marginBottom: 8,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#667eea',
+    backgroundColor: '#fff',
+    borderRadius: 4,
   },
   goalPercentage: {
-    fontSize: 12,
-    color: '#333',
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   scoreCard: {
-    padding: 10,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 15,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   scoreGradient: {
-    borderRadius: 5,
-    overflow: 'hidden',
+    borderRadius: 15,
+  },
+  scoreContent: {
+    padding: 20,
   },
   scoreHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 20,
   },
   scoreBadge: {
-    padding: 4,
-    backgroundColor: '#fff',
-    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   scoreBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#333',
+    color: '#fff',
+  },
+  scoreDisplay: {
+    alignItems: 'flex-end',
   },
   scoreTotal: {
-    fontSize: 42,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    color: '#fff',
   },
   scoreBreakdown: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
   },
   scoreSection: {
     alignItems: 'center',
@@ -434,89 +462,101 @@ const styles = StyleSheet.create({
   scoreSectionValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
     marginBottom: 4,
   },
   scoreSectionLabel: {
     fontSize: 12,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
   },
   divider: {
     width: 1,
-    height: '100%',
-    backgroundColor: '#ddd',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   statCard: {
-    width: '32%',
-    padding: 10,
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    width: '31%',
+    borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   statGradient: {
-    borderRadius: 5,
-    overflow: 'hidden',
+    padding: 16,
+    alignItems: 'center',
+    minHeight: 100,
+    justifyContent: 'center',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    color: '#fff',
+    marginVertical: 8,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
   progressCard: {
-    padding: 10,
     backgroundColor: '#fff',
-    borderRadius: 10,
-    overflow: 'hidden',
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   progressTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   chart: {
-    height: 150,
+    height: 120,
+    flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
-    marginVertical: 16,
+    paddingHorizontal: 10,
   },
   chartItem: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-end',
     height: '100%',
-    paddingHorizontal: 8,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 4,
   },
   chartBar: {
-    width: 24,
+    width: 20,
     backgroundColor: '#667eea',
-    borderRadius: 4,
+    borderRadius: 10,
     minHeight: 20,
+    marginBottom: 8,
   },
   chartLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
-    marginTop: 8,
+    marginBottom: 2,
   },
   chartScore: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 12,
+    fontWeight: '600',
     color: '#333',
-    marginTop: 4,
   },
   chartLegend: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginTop: 16,
+    paddingHorizontal: 10,
   },
   chartMin: {
     fontSize: 12,
@@ -526,71 +566,86 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-  tipCard: {
-    padding: 10,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  tipGradient: {
-    borderRadius: 5,
-    overflow: 'hidden',
-  },
-  tipTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  tipText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
   twoColumnContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   strengthCard: {
     width: '48%',
-    padding: 0,
+    borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  weaknessCard: {
+    width: '48%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   swGradient: {
-    borderRadius: 10,
-    overflow: 'hidden',
+    borderRadius: 12,
   },
   cardHeader: {
-    backgroundColor: 'rgba(0, 0, 0, 0.02)',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   cardHeaderText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#fff',
     marginLeft: 8,
   },
   cardContent: {
-    padding: 12,
+    padding: 16,
   },
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   listItemText: {
     fontSize: 14,
-    color: '#333',
+    color: '#fff',
     marginLeft: 8,
+    flex: 1,
   },
-  weaknessCard: {
-    width: '48%',
-    padding: 0,
+  tipCard: {
+    borderRadius: 15,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tipGradient: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  tipTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    marginVertical: 12,
+  },
+  tipText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  lastSection: {
+    marginBottom: 20,
   },
 }); 
