@@ -1,106 +1,74 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const { width } = Dimensions.get('window');
+import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../context/AuthContext';
 
 export default function HomeScreen() {
-  const features = [
+  const router = useRouter();
+  const { user } = useAuth(); // Using the useAuth hook to get user info
+
+  // Data for the cards, with colors instead of images
+  const cardData = [
     {
       title: 'Practice Tests',
-      description: 'Full-length SAT practice tests with detailed explanations',
-      icon: 'document-text',
-      route: '/(tabs)/practice',
+      description: 'Full-length practice tests to simulate the real SAT exam.',
+      buttonText: 'Start',
+      color: '#fdece1', // General color for the placeholder
+      onPress: () => router.push('/(tabs)/practice'),
     },
     {
-      title: 'Vocabulary',
-      description: 'Master essential SAT vocabulary words',
-      icon: 'book',
-      route: '/(tabs)/resources',
+      title: 'Quizzes',
+      description: 'Short quizzes focusing on specific SAT sections and topics.',
+      buttonText: 'Start',
+      color: '#eaf4ff', // A different color for variety
+      onPress: () => router.push('/(tabs)/practice'), // Assuming quizzes are on the practice screen
     },
     {
-      title: 'Math Tips',
-      description: 'Learn key formulas and problem-solving strategies',
-      icon: 'calculator',
-      route: '/(tabs)/resources',
-    },
-    {
-      title: 'Reading Comprehension',
-      description: 'Improve your critical reading skills',
-      icon: 'glasses',
-      route: '/(tabs)/resources',
+      title: 'Study Plan',
+      description: 'Personalized study plan based on your strengths and weaknesses.',
+      buttonText: 'View',
+      color: '#f8eaff', // And another one
+      onPress: () => { /* Add navigation to study plan screen if it exists */ },
     },
   ];
 
+  const userName = user?.name || 'User';
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView} 
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.hero}>
-          <View style={styles.textContainer}>
-            <Text style={styles.heroTitle}>Ace the SAT with Confidence</Text>
-            <Text style={styles.heroSubtitle}>
-              Personalized prep, expert tips, and thousands of practice questions to help you succeed.
-            </Text>
-            <Link href="/(tabs)/practice" asChild>
-              <TouchableOpacity 
-                style={styles.heroButton}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.heroButtonText}>Start Practicing</Text>
-                <Ionicons name="arrow-forward" size={20} color="#FFF" />
-              </TouchableOpacity>
-            </Link>
-          </View>
-          <View style={styles.heroIconContainer}>
-            <Ionicons name="school-outline" size={100} color="rgba(255, 255, 255, 0.3)" />
-          </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>SAT Prep</Text>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
+            <Ionicons name="settings-outline" size={24} color="#333" />
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Explore Features</Text>
-          <View style={styles.featuresContainer}>
-            {features.map((feature, index) => (
-              <Link key={index} href={feature.route as any} asChild>
-                <TouchableOpacity style={styles.featureCard}>
-                  <View style={styles.featureIconContainer}>
-                    <Ionicons name={feature.icon as any} size={32} color="#2962ff" />
-                  </View>
-                  <Text style={styles.featureTitle}>{feature.title}</Text>
-                  <Text style={styles.featureDescription}>{feature.description}</Text>
-                </TouchableOpacity>
-              </Link>
-            ))}
-          </View>
+        {/* Welcome Message */}
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeTitle}>Welcome, {userName}!</Text>
+          <Text style={styles.quote}>
+            "The only way to do great work is to love what you do." - Steve Jobs
+          </Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Study Plans</Text>
-          <View style={styles.studyPlanCard}>
-            <View style={styles.studyPlanHeader}>
-              <View style={styles.studyPlanBadge}>
-                <Text style={styles.studyPlanBadgeText}>Popular</Text>
+        {/* Cards */}
+        {cardData.map((card, index) => (
+          <View key={index} style={styles.card}>
+            <View style={[styles.cardImage, { backgroundColor: card.color }]} />
+            <View style={styles.cardContent}>
+              <View style={styles.cardTextContainer}>
+                <Text style={styles.cardTitle}>{card.title}</Text>
+                <Text style={styles.cardDescription}>{card.description}</Text>
               </View>
-              <Text style={styles.studyPlanTitle}>30-Day SAT Prep</Text>
-              <Text style={styles.studyPlanDescription}>
-                A structured plan to boost your SAT score in just 30 days.
-              </Text>
-            </View>
-            <View style={styles.studyPlanFooter}>
-              <View style={styles.infoItem}>
-                <Ionicons name="time-outline" size={16} color="#666" />
-                <Text style={styles.studyPlanInfo}>30 Days</Text>
-              </View>
-              <TouchableOpacity style={styles.studyPlanButton}>
-                <Text style={styles.studyPlanButtonText}>View Plan</Text>
+              <TouchableOpacity style={styles.cardButton} onPress={card.onPress}>
+                <Text style={styles.cardButtonText}>{card.buttonText}</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -109,176 +77,79 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f0f2f5', // Light grey background from screenshot
   },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  hero: {
-    position: 'relative',
-    backgroundColor: '#2962ff',
-    borderRadius: 12,
+  scrollContent: {
     padding: 20,
-    marginBottom: 24,
-    overflow: 'hidden',
-    minHeight: 200,
   },
-  textContainer: {
-    maxWidth: '75%',
-    paddingRight: 16,
-    zIndex: 2,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFF',
-    marginBottom: 8,
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 24,
-  },
-  heroButton: {
+  header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  heroButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFF',
-  },
-  heroIconContainer: {
-    position: 'absolute',
-    bottom: -20,
-    right: -20,
-    opacity: 0.3,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  featuresContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
     justifyContent: 'space-between',
-  },
-  featureCard: {
-    width: (width - 44) / 2,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 20,
   },
-  featureIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(41, 98, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  featureTitle: {
-    fontSize: 16,
+  headerTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
+  },
+  welcomeSection: {
+    marginBottom: 30,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
     marginBottom: 8,
-    textAlign: 'center',
+    color: '#333',
   },
-  featureDescription: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
+  quote: {
+    fontSize: 16,
+    color: '#555',
+    fontStyle: 'italic',
   },
-  studyPlanCard: {
+  card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
+    marginBottom: 20,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  studyPlanHeader: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    position: 'relative',
+  cardImage: {
+    width: '100%',
+    height: 150,
   },
-  studyPlanBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#ffd700',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderBottomLeftRadius: 8,
+  cardContent: {
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  studyPlanBadgeText: {
-    color: '#333',
-    fontSize: 12,
-    fontWeight: '600',
+  cardTextContainer: {
+    flex: 1,
+    paddingRight: 15,
   },
-  studyPlanTitle: {
+  cardTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: 'bold',
     marginBottom: 8,
-    marginTop: 8,
+    color: '#333',
   },
-  studyPlanDescription: {
+  cardDescription: {
     fontSize: 14,
     color: '#666',
   },
-  studyPlanFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
+  cardButton: {
+    backgroundColor: '#eef2ff', // Light blue button background
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
   },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  studyPlanInfo: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-  },
-  studyPlanButton: {
-    backgroundColor: '#2962ff',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  studyPlanButtonText: {
-    color: '#FFF',
-    fontWeight: '600',
-    fontSize: 14,
+  cardButtonText: {
+    color: '#4361ee', // Darker blue button text
+    fontWeight: 'bold',
   },
 });

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
-import { usePracticeData } from './context/PracticeDataContext';
+import { usePracticeData } from '../context/PracticeDataContext';
 
 export default function QuizScreen() {
   const { id } = useLocalSearchParams();
@@ -345,4 +345,4 @@ const styles = StyleSheet.create<Styles>({
     marginTop: 'auto',
     paddingVertical: 16,
   },
-});
+}); 
