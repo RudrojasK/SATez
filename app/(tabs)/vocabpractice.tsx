@@ -1,16 +1,17 @@
 import { useAuth } from '@/app/context/AuthContext';
+import { usePracticeData } from '@/app/context/PracticeDataContext';
 import VocabWords from '@/data/vocab.json';
-import { practiceDataService } from '@/utils/supabase';
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Dimensions,
     SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
 } from "react-native";
 
 const { width, height } = Dimensions.get('window');
@@ -28,6 +29,7 @@ type VocabWord = {
 
 const VocabPractice: React.FC = () => {
     const { user } = useAuth();
+    const { addVocabResult } = usePracticeData();
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [currentWord, setCurrentWord] = useState<VocabWord | null>(null);
@@ -116,10 +118,7 @@ const VocabPractice: React.FC = () => {
     const handleCheckAnswer = async () => {
         if (!selectedOption || !currentWord) return;
         
-        // Calculate time spent on this question
-        const timeSpent = Math.floor((Date.now() - startTime) / 1000); // in seconds
-        
-        // Find selected and correct options
+        const timeSpent = Math.floor((Date.now() - startTime) / 1000);
         const selectedOptionObj = options.find(opt => opt.key === selectedOption);
         const correctOptionObj = options.find(opt => opt.isCorrect);
         
@@ -127,25 +126,22 @@ const VocabPractice: React.FC = () => {
         
         const isCorrect = selectedOptionObj.isCorrect;
         
-        // Update stats
         setPracticeStats(prev => ({
             questionsAnswered: prev.questionsAnswered + 1,
             correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0)
         }));
         
-        // Save result to Supabase if user is logged in
-        if (user) {
-            try {
-                await practiceDataService.saveVocabPracticeResult(user.id, {
-                    word: currentWord.word,
-                    isCorrect,
-                    selectedOption: selectedOptionObj.key,
-                    correctOption: correctOptionObj.key,
-                    timeSpent
-                });
-            } catch (error) {
-                console.error('Error saving practice result:', error);
-            }
+        try {
+            await addVocabResult({
+                word: currentWord.word,
+                isCorrect,
+                selectedOption: selectedOptionObj.key,
+                correctOption: correctOptionObj.key,
+                timeSpent
+            });
+        } catch (error) {
+            console.error('Error in handleCheckAnswer:', error);
+            Alert.alert("Error", "Could not save your result. Please try again.");
         }
         
         setShowAnswer(true);

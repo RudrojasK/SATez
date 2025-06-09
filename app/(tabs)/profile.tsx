@@ -3,64 +3,27 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { StatCard } from '../../components/StatCard';
 import { COLORS, SHADOWS } from '../../constants/Colors';
-import { practiceDataService } from '../../utils/supabase';
 import { useAuth } from '../context/AuthContext';
-
-// Define the user stats type
-interface UserStats {
-  totalQuestions: number;
-  correctAnswers: number;
-  accuracyRate: number;
-  totalHours: number;
-  recentSessions: any[];
-  vocabCount: number;
-  readingCount: number;
-}
+import { usePracticeData } from '../context/PracticeDataContext';
 
 export default function ProfileScreen() {
-  const { user, signOut, refreshUser } = useAuth();
+  const { user, signOut } = useAuth();
+  const { stats, statsLoading, fetchUserStats } = usePracticeData();
   const [loading, setLoading] = useState(false);
   const [userName, setUserName] = useState('');
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
   
-  // Format the user's email to get a display name
   useEffect(() => {
     if (user?.email) {
-      // Extract name from email (part before @)
       const emailName = user.email.split('@')[0];
-      // Capitalize first letter and replace dots/underscores with spaces
       const formatted = emailName
         .replace(/[._]/g, ' ')
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
       setUserName(formatted);
-      
-      // Load user stats
-      loadUserStats();
     }
   }, [user]);
 
-  const loadUserStats = async () => {
-    if (!user) return;
-    
-    setStatsLoading(true);
-    try {
-      const stats = await practiceDataService.getUserStats(user.id);
-      setUserStats(stats);
-    } catch (error) {
-      console.error('Error loading user stats:', error);
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
-  const handleSettingsPress = () => {
-    // This would navigate to the settings page
-    console.log('Settings pressed');
-  };
-  
   const handleSignOut = () => {
     Alert.alert(
       'Sign Out',
@@ -72,14 +35,14 @@ export default function ProfileScreen() {
     );
   };
   
-  const refreshUserData = async () => {
+  const refreshAllData = async () => {
     setLoading(true);
     try {
-      await refreshUser();
-      await loadUserStats();
-      Alert.alert('Success', 'User data refreshed');
+      await fetchUserStats();
+      Alert.alert('Success', 'User data has been refreshed.');
     } catch (error) {
       console.error('Error refreshing user data:', error);
+      Alert.alert('Error', 'Failed to refresh user data.');
     } finally {
       setLoading(false);
     }
@@ -106,10 +69,10 @@ export default function ProfileScreen() {
           
           <TouchableOpacity 
             style={styles.refreshButton} 
-            onPress={refreshUserData}
+            onPress={refreshAllData}
             disabled={statsLoading}
           >
-            <Ionicons name="refresh" size={20} color={COLORS.white} />
+            <Ionicons name="refresh" size={20} color="#FFFFFF" />
             <Text style={styles.refreshText}>Refresh Data</Text>
           </TouchableOpacity>
         </View>
@@ -122,19 +85,19 @@ export default function ProfileScreen() {
             <View style={styles.statsContainer}>
               <StatCard 
                 title="Questions Answered" 
-                value={userStats?.totalQuestions || 0} 
+                value={stats?.totalQuestions || 0} 
                 icon="document-text" 
                 accentColor={COLORS.primary}
               />
               <StatCard 
                 title="Accuracy Rate" 
-                value={`${userStats?.accuracyRate || 0}%`} 
+                value={`${stats?.accuracyRate || 0}%`} 
                 icon="stats-chart" 
                 accentColor={COLORS.secondary}
               />
               <StatCard 
                 title="Study Hours" 
-                value={userStats?.totalHours || 0} 
+                value={stats?.totalHours || 0} 
                 icon="time" 
                 accentColor={COLORS.accent}
               />
@@ -150,12 +113,12 @@ export default function ProfileScreen() {
             <View style={styles.progressCard}>
               <View style={styles.progressRow}>
                 <View style={styles.progressItem}>
-                  <Text style={styles.progressNumber}>{userStats?.vocabCount || 0}</Text>
+                  <Text style={styles.progressNumber}>{stats?.vocabCount || 0}</Text>
                   <Text style={styles.progressLabel}>Vocabulary Questions</Text>
                 </View>
                 <View style={styles.progressDivider} />
                 <View style={styles.progressItem}>
-                  <Text style={styles.progressNumber}>{userStats?.readingCount || 0}</Text>
+                  <Text style={styles.progressNumber}>{stats?.readingCount || 0}</Text>
                   <Text style={styles.progressLabel}>Reading Questions</Text>
                 </View>
               </View>
@@ -167,9 +130,9 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           {statsLoading ? (
             <ActivityIndicator size="small" color={COLORS.primary} />
-          ) : userStats?.recentSessions && userStats.recentSessions.length > 0 ? (
+          ) : stats?.recentSessions && stats.recentSessions.length > 0 ? (
             <View style={styles.activityCard}>
-              {userStats.recentSessions.slice(0, 3).map((session, index) => (
+              {stats.recentSessions.slice(0, 3).map((session, index) => (
                 <React.Fragment key={index}>
                   <View style={styles.activityItem}>
                     <View style={styles.activityLeft}>
@@ -197,7 +160,7 @@ export default function ProfileScreen() {
                     </Text>
                   </View>
                   
-                  {index < userStats.recentSessions.length - 1 && <View style={styles.activityDivider} />}
+                  {index < stats.recentSessions.length - 1 && <View style={styles.activityDivider} />}
                 </React.Fragment>
               ))}
             </View>
@@ -312,7 +275,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   refreshText: {
-    color: COLORS.white,
+    color: "#FFFFFF",
     marginLeft: 8,
     fontWeight: '500',
   },
