@@ -1,22 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
-import { Animated, StyleSheet } from 'react-native';
+import { HapticTab } from '../../components/HapticTab';
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#fff',
-        tabBarInactiveTintColor: 'rgba(255,255,255,0.7)',
+        tabBarActiveTintColor: '#2962ff',
+        tabBarInactiveTintColor: '#666',
         tabBarStyle: {
-          backgroundColor: '#667eea',
-          borderTopWidth: 0,
-          height: 70,
+          borderTopWidth: 1,
+          borderTopColor: '#eee',
+          height: 60,
           paddingBottom: 10,
-          paddingTop: 10,
         },
+        tabBarButton: (props) => <HapticTab {...props} />,
       }}
     >
       <Tabs.Screen
@@ -24,15 +23,11 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <Animated.View 
-              style={[
-                styles.iconContainer, 
-                focused && styles.iconContainerFocused,
-                { transform: [{ scale: focused ? 1.1 : 1 }] }
-              ]}
-            >
-              <Ionicons name="home" size={24} color={color} />
-            </Animated.View>
+            <Ionicons 
+              name={focused ? 'home' : 'home-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -41,15 +36,11 @@ export default function TabsLayout() {
         options={{
           title: 'Practice',
           tabBarIcon: ({ color, focused }) => (
-            <Animated.View 
-              style={[
-                styles.iconContainer, 
-                focused && styles.iconContainerFocused,
-                { transform: [{ scale: focused ? 1.1 : 1 }] }
-              ]}
-            >
-              <Ionicons name="document-text" size={24} color={color} />
-            </Animated.View>
+            <Ionicons 
+              name={focused ? 'document-text' : 'document-text-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -74,15 +65,11 @@ export default function TabsLayout() {
         options={{
           title: 'Resources',
           tabBarIcon: ({ color, focused }) => (
-            <Animated.View 
-              style={[
-                styles.iconContainer, 
-                focused && styles.iconContainerFocused,
-                { transform: [{ scale: focused ? 1.1 : 1 }] }
-              ]}
-            >
-              <Ionicons name="library" size={24} color={color} />
-            </Animated.View>
+            <Ionicons 
+              name={focused ? 'library' : 'library-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -91,15 +78,11 @@ export default function TabsLayout() {
         options={{
           title: 'Tutor',
           tabBarIcon: ({ color, focused }) => (
-            <Animated.View 
-              style={[
-                styles.iconContainer, 
-                focused && styles.iconContainerFocused,
-                { transform: [{ scale: focused ? 1.1 : 1 }] }
-              ]}
-            >
-              <Ionicons name="school" size={24} color={color} />
-            </Animated.View>
+            <Ionicons 
+              name={focused ? 'school' : 'school-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
           headerShown: false,
         }}
@@ -109,31 +92,14 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <Animated.View 
-              style={[
-                styles.iconContainer, 
-                focused && styles.iconContainerFocused,
-                { transform: [{ scale: focused ? 1.1 : 1 }] }
-              ]}
-            >
-              <Ionicons name="person" size={24} color={color} />
-            </Animated.View>
+            <Ionicons 
+              name={focused ? 'person' : 'person-outline'} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconContainerFocused: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-});
