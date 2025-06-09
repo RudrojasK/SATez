@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert, ViewStyle, TextStyle, ScrollView, Platform } from 'react-native';
-import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, SIZES, SHADOWS } from '@/constants/Colors';
 import { Button } from '@/components/Button';
-import { quizQuestions, practiceTests } from '@/constants/mockData';
+import { COLORS, SHADOWS, SIZES } from '@/constants/Colors';
+import { practiceTests, quizQuestions } from '@/constants/mockData';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { usePracticeData } from './context/PracticeDataContext';
 
 export default function QuizScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { addTestQuestionResult } = usePracticeData();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState(60); // 60 seconds per question (just UI, not functional)
+  const [timeLeft, setTimeLeft] = useState(60); // 60 seconds per question
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
   
   // Find the test details
   const test = practiceTests.find(t => t.id === id);
@@ -25,17 +28,56 @@ export default function QuizScreen() {
   };
   
   // Handle next question
-  const handleNextQuestion = () => {
+  const handleNextQuestion = async () => {
+    // Save the current question result if an option was selected
+    if (selectedOption !== null) {
+      const question = quizQuestions[currentQuestion];
+      const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
+      const isCorrect = selectedOption === question.correctAnswer;
+      const selectedOptionLetter = String.fromCharCode(65 + selectedOption); // Convert 0,1,2,3 to A,B,C,D
+      const correctOptionLetter = String.fromCharCode(65 + question.correctAnswer);
+      
+      console.log('Saving question result:', {
+        testId: id as string,
+        questionId: question.id,
+        questionText: question.question,
+        isCorrect,
+        selectedOption: selectedOptionLetter,
+        correctOption: correctOptionLetter,
+        timeSpent,
+        section: test?.title || 'Practice Test',
+        difficulty: test?.difficulty || 'Medium'
+      });
+      
+      try {
+        await addTestQuestionResult({
+          testId: id as string,
+          questionId: question.id,
+          questionText: question.question,
+          isCorrect,
+          selectedOption: selectedOptionLetter,
+          correctOption: correctOptionLetter,
+          timeSpent,
+          section: test?.title || 'Practice Test',
+          difficulty: test?.difficulty || 'Medium'
+        });
+        console.log('✅ Question result saved successfully');
+      } catch (error) {
+        console.error('❌ Failed to save question result:', error);
+      }
+    }
+    
     if (currentQuestion < quizQuestions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
       setSelectedOption(null);
+      setQuestionStartTime(Date.now()); // Reset start time for next question
       // Reset timer for next question
       setTimeLeft(60);
     } else {
       // Quiz completed
       Alert.alert(
         "Quiz Completed",
-        "You've completed the quiz! In a real app, this would show your score and analytics.",
+        "You've completed the quiz! Check your profile to see your results.",
         [
           { 
             text: "OK", 
@@ -53,6 +95,11 @@ export default function QuizScreen() {
     }, 1000);
     
     return () => clearInterval(timer);
+  }, [currentQuestion]);
+  
+  // Reset question start time when question changes
+  useEffect(() => {
+    setQuestionStartTime(Date.now());
   }, [currentQuestion]);
   
   // Format time remaining

@@ -6,6 +6,52 @@ import { COLORS, SHADOWS } from '../../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 import { usePracticeData } from '../context/PracticeDataContext';
 
+// New component for displaying recent test questions
+const RecentTestQuestions = ({ testQuestions }: { testQuestions: any[] }) => {
+  if (!testQuestions || testQuestions.length === 0) {
+    return (
+      <View style={styles.noActivityContainer}>
+        <Text style={styles.noActivityText}>No practice test questions answered yet.</Text>
+        <Text style={styles.noActivitySubtext}>Start a practice test to see your results here.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.activityCard}>
+      {testQuestions.map((question, index) => (
+        <React.Fragment key={index}>
+          <View style={styles.activityItem}>
+            <View style={styles.activityLeft}>
+              <Ionicons 
+                name={question.is_correct ? "checkmark-circle" : "close-circle"} 
+                size={24} 
+                color={question.is_correct ? COLORS.success : COLORS.error} 
+              />
+              <View style={styles.activityTextContainer}>
+                <Text style={styles.activityTitle} numberOfLines={2}>
+                  {question.section}: {question.question_text ? question.question_text.substring(0, 50) + '...' : 'Practice Question'}
+                </Text>
+                <Text style={styles.activityTime} numberOfLines={1}>
+                  {new Date(question.created_at).toLocaleDateString()} at {new Date(question.created_at).toLocaleTimeString()}
+                </Text>
+              </View>
+            </View>
+            <Text style={[
+              styles.activityScore,
+              question.is_correct ? styles.activityScoreSuccess : styles.activityScoreError
+            ]}>
+              {question.is_correct ? 'Correct' : 'Incorrect'}
+            </Text>
+          </View>
+          
+          {index < testQuestions.length - 1 && <View style={styles.activityDivider} />}
+        </React.Fragment>
+      ))}
+    </View>
+  );
+};
+
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const { stats, statsLoading, fetchUserStats } = usePracticeData();
@@ -121,8 +167,22 @@ export default function ProfileScreen() {
                   <Text style={styles.progressNumber}>{stats?.readingCount || 0}</Text>
                   <Text style={styles.progressLabel}>Reading Questions</Text>
                 </View>
+                <View style={styles.progressDivider} />
+                <View style={styles.progressItem}>
+                  <Text style={styles.progressNumber}>{stats?.testQuestionCount || 0}</Text>
+                  <Text style={styles.progressLabel}>Test Questions</Text>
+                </View>
               </View>
             </View>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Practice Test Questions</Text>
+          {statsLoading ? (
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          ) : (
+            <RecentTestQuestions testQuestions={stats?.recentTestQuestions || []} />
           )}
         </View>
 
@@ -143,8 +203,9 @@ export default function ProfileScreen() {
                       />
                       <View style={styles.activityTextContainer}>
                         <Text style={styles.activityTitle} numberOfLines={1}>
-                          {session.word ? `Vocabulary: ${session.word}` : 
-                           session.passage_id ? `Reading: Question ${session.question_id}` : 
+                          {session.type === 'vocab' ? `Vocabulary: ${session.word}` : 
+                           session.type === 'reading' ? `Reading: Question ${session.question_id}` : 
+                           session.type === 'test' ? `Test: ${session.section}` :
                            'Practice Session'}
                         </Text>
                         <Text style={styles.activityTime} numberOfLines={1}>

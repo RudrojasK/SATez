@@ -147,6 +147,49 @@ export const practiceDataService = {
     }
   },
 
+  // Save individual test question results
+  async saveTestQuestionResult(userId: string, data: {
+    testId: string;
+    questionId: string;
+    questionText: string;
+    isCorrect: boolean;
+    selectedOption: string;
+    correctOption: string;
+    timeSpent: number;
+    section?: string;
+    difficulty?: string;
+  }) {
+    try {
+      const { data: insertedData, error } = await supabase
+        .from('test_question_results')
+        .insert({
+          user_id: userId,
+          test_id: data.testId,
+          question_id: data.questionId,
+          question_text: data.questionText,
+          is_correct: data.isCorrect,
+          selected_option: data.selectedOption,
+          correct_option: data.correctOption,
+          time_spent: data.timeSpent,
+          section: data.section || 'Practice',
+          difficulty: data.difficulty || 'Medium',
+          created_at: new Date().toISOString()
+        })
+        .select();
+      
+      if (error) {
+        console.error('Supabase error saving test question result:', JSON.stringify(error, null, 2));
+        throw error;
+      }
+      
+      console.log('Successfully saved test question result:', insertedData);
+      return insertedData;
+    } catch (error) {
+      console.error('Caught exception in saveTestQuestionResult:', error);
+      return null;
+    }
+  },
+
   // Get user practice statistics
   async getUserStats(userId: string) {
     try {
@@ -165,18 +208,35 @@ export const practiceDataService = {
         .eq('user_id', userId);
       
       if (readingError) throw readingError;
+
+      // Get test question results
+      const { data: testData, error: testError } = await supabase
+        .from('test_question_results')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (testError) throw testError;
       
       // Calculate statistics
-      const totalQuestions = vocabData.length + readingData.length;
-      const correctAnswers = [...vocabData, ...readingData].filter(item => item.is_correct).length;
+      const totalQuestions = (vocabData?.length || 0) + (readingData?.length || 0) + (testData?.length || 0);
+      const correctAnswers = [
+        ...(vocabData || []).filter(item => item.is_correct),
+        ...(readingData || []).filter(item => item.is_correct),
+        ...(testData || []).filter(item => item.is_correct)
+      ].length;
       const accuracyRate = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
       
-      // Calculate total study time in minutes
-      const totalTimeSpent = [...vocabData, ...readingData].reduce((sum, item) => sum + item.time_spent, 0);
-      const totalHours = Math.round(totalTimeSpent / 60 / 60 * 10) / 10; // Convert to hours with 1 decimal place
+      const totalPracticeTime = [...(vocabData || []), ...(readingData || [])].reduce((sum, item) => sum + item.time_spent, 0);
+      const totalTestTime = (testData || []).reduce((sum, item) => sum + item.time_spent, 0);
+      const totalHours = Math.round((totalPracticeTime + totalTestTime) / 3600 * 10) / 10;
       
-      // Get the most recent practice sessions
-      const recentSessions = [...vocabData, ...readingData]
+      // Combine all recent sessions for display
+      const recentSessions = [
+        ...(vocabData || []).map(item => ({ ...item, type: 'vocab' })),
+        ...(readingData || []).map(item => ({ ...item, type: 'reading' })),
+        ...(testData || []).map(item => ({ ...item, type: 'test' }))
+      ]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 5);
       
@@ -186,8 +246,10 @@ export const practiceDataService = {
         accuracyRate: Math.round(accuracyRate),
         totalHours,
         recentSessions,
-        vocabCount: vocabData.length,
-        readingCount: readingData.length
+        vocabCount: vocabData?.length || 0,
+        readingCount: readingData?.length || 0,
+        testQuestionCount: testData?.length || 0,
+        recentTestQuestions: (testData || []).slice(0, 3), // Latest 3 test questions
       };
     } catch (error) {
       console.error('Error getting user stats:', error);

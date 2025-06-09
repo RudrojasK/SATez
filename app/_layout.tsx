@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View, useColorScheme } from 'react-native';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PracticeDataProvider } from './context/PracticeDataContext';
 
 const AuthCheck = () => {
   const { session, isLoading } = useAuth();
@@ -64,14 +65,17 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AuthCheck />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <PracticeDataProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <AuthCheck />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="quiz" />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </PracticeDataProvider>
     </AuthProvider>
   );
 }

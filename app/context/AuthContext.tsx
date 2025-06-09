@@ -38,30 +38,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const fetchSession = async () => {
-      try {
+    try {
         setIsLoading(true);
         const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
+      
         if (currentSession?.user) {
           setSession(currentSession);
           setSupabaseUser(currentSession.user);
           const userData = await getUserProfile(currentSession.user.id);
           setUser(userData);
-        }
-      } catch (error) {
-        console.error('Error loading stored auth:', error);
-      } finally {
-        setIsLoading(false);
       }
-    };
-    
+    } catch (error) {
+      console.error('Error loading stored auth:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
     fetchSession();
     
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, currentSession) => {
         setSession(currentSession);
-        
+      
         if (currentSession?.user) {
           setSupabaseUser(currentSession.user);
           const userData = await getUserProfile(currentSession.user.id);
@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    setIsLoading(true);
+      setIsLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     const { error } = await supabase.auth.signOut();
     if (error) {
-        console.error('Sign out error:', error);
+      console.error('Sign out error:', error);
         throw error;
     }
     // onAuthStateChange will handle cleanup

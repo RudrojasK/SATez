@@ -60,30 +60,6 @@ export default function PracticeScreen() {
         {renderTabButton('Quick Quizzes', 'quiz')}
       </View>
 
-      {/* <ScrollView 
-        style={styles.testsList} 
-        contentContainerStyle={styles.testsListContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {filteredTests.length > 0 ? (
-          filteredTests.map(test => (
-            <PracticeCard
-              key={test.id}
-              id={test.id}
-              title={test.title}
-              description={test.description}
-              timeEstimate={test.timeEstimate}
-              difficulty={test.difficulty as 'Easy' | 'Medium' | 'Hard'}
-              progress={test.progress}
-              onPress={() => handleCardPress(test.id)}
-            />
-          ))}
-        // ) : (
-        //   <View style={styles.emptyState}>
-        //     <Text style={styles.emptyStateText}>No tests available in this category yet.</Text>
-        //   </View>
-        // )}
-      </ScrollView> */}
       <ScrollView
         style={styles.testsList}
         contentContainerStyle={styles.testsListContent}
@@ -126,13 +102,6 @@ export default function PracticeScreen() {
           </View>
         )}
       </ScrollView>
-      {/* <ScrollView 
-        style={styles.testsList}
-        contentContainerStyle={styles.testsListContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <VocabQuestion />
-      </ScrollView> */}
     </SafeAreaView>
   );
 }
