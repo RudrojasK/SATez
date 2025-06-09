@@ -1,50 +1,96 @@
-# Welcome to your Expo app 👋
+# SATez - SAT Preparation App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+SATez is a comprehensive SAT preparation app that helps students practice vocabulary, reading comprehension, and full-length tests. The app tracks user progress and provides personalized statistics.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Vocabulary Practice**: Learn and test your knowledge of SAT vocabulary words
+- **Reading Comprehension**: Practice reading passages and answering questions
+- **Progress Tracking**: View your performance statistics and track your improvement
+- **User Authentication**: Secure login and registration
+- **Data Persistence**: All practice data is saved to the backend
 
-   ```bash
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or higher)
+- npm or yarn
+- Expo CLI
+
+### Installation
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/aarushk09/SATez.git
+   cd SATez
+   ```
+
+2. Install dependencies:
+   ```
    npm install
    ```
 
-2. Start the app
+3. Create a `.env.local` file in the root directory with your Supabase credentials:
+   ```
+   EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-   ```bash
+4. Set up the required Supabase tables:
+   ```
+   node utils/setupSupabaseTables.js
+   ```
+
+5. Start the development server:
+   ```
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+### Database Setup
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+The app requires the following tables in your Supabase database:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- `user_profiles`: Stores user profile information
+- `vocab_practice_results`: Stores vocabulary practice results
+- `reading_practice_results`: Stores reading comprehension results
+- `full_length_test_results`: Stores full-length test results
 
-## Get a fresh project
+Run the `setupSupabaseTables.js` script to create these tables automatically.
 
-When you're ready, run:
+## Usage
 
-```bash
-npm run reset-project
-```
+1. Register a new account or log in with an existing account
+2. Navigate to the Practice tab to start practicing vocabulary or reading comprehension
+3. Complete practice sessions to track your progress
+4. View your statistics on the Profile page
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Development
 
-## Learn more
+### Project Structure
 
-To learn more about developing your project with Expo, look at the following resources:
+- `app/`: Main application code with file-based routing
+  - `(auth)/`: Authentication screens
+  - `(tabs)/`: Tab-based navigation screens
+- `components/`: Reusable UI components
+- `constants/`: App constants like colors and theme
+- `data/`: Static data like vocabulary words and reading passages
+- `utils/`: Utility functions and API clients
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Environment Variables
 
-## Join the community
+The app uses the following environment variables:
 
-Join our community of developers creating universal apps.
+- `EXPO_PUBLIC_SUPABASE_URL`: Your Supabase project URL
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+- `GROQ_API_KEY`: (Optional) API key for Groq AI integration
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- [Expo](https://expo.dev/) for the app framework
+- [Supabase](https://supabase.io/) for the backend and authentication
+- [React Navigation](https://reactnavigation.org/) for navigation

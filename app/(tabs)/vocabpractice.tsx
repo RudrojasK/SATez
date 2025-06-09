@@ -1,4 +1,6 @@
+import { useAuth } from '@/app/context/AuthContext';
 import VocabWords from '@/data/vocab.json';
+import { practiceDataService } from '@/utils/supabase';
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -25,12 +27,18 @@ type VocabWord = {
 };
 
 const VocabPractice: React.FC = () => {
+    const { user } = useAuth();
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [currentWord, setCurrentWord] = useState<VocabWord | null>(null);
     const [options, setOptions] = useState<Option[]>([]);
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [showAnswer, setShowAnswer] = useState<boolean>(false);
+    const [startTime, setStartTime] = useState<number>(0);
+    const [practiceStats, setPracticeStats] = useState({
+        questionsAnswered: 0,
+        correctAnswers: 0
+    });
 
     const getRandomWord = (): VocabWord | null => {
         if (!VocabWords || !Array.isArray(VocabWords) || VocabWords.length === 0) {
@@ -84,6 +92,7 @@ const VocabPractice: React.FC = () => {
             if (word) {
                 setCurrentWord(word);
                 setOptions(createOptions(word));
+                setStartTime(Date.now()); // Record start time for this question
                 setLoading(false);
             } else {
                 setError("Failed to load a vocabulary word");
@@ -104,7 +113,41 @@ const VocabPractice: React.FC = () => {
         setSelectedOption(key);
     };
 
-    const handleCheckAnswer = () => {
+    const handleCheckAnswer = async () => {
+        if (!selectedOption || !currentWord) return;
+        
+        // Calculate time spent on this question
+        const timeSpent = Math.floor((Date.now() - startTime) / 1000); // in seconds
+        
+        // Find selected and correct options
+        const selectedOptionObj = options.find(opt => opt.key === selectedOption);
+        const correctOptionObj = options.find(opt => opt.isCorrect);
+        
+        if (!selectedOptionObj || !correctOptionObj) return;
+        
+        const isCorrect = selectedOptionObj.isCorrect;
+        
+        // Update stats
+        setPracticeStats(prev => ({
+            questionsAnswered: prev.questionsAnswered + 1,
+            correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0)
+        }));
+        
+        // Save result to Supabase if user is logged in
+        if (user) {
+            try {
+                await practiceDataService.saveVocabPracticeResult(user.id, {
+                    word: currentWord.word,
+                    isCorrect,
+                    selectedOption: selectedOptionObj.key,
+                    correctOption: correctOptionObj.key,
+                    timeSpent
+                });
+            } catch (error) {
+                console.error('Error saving practice result:', error);
+            }
+        }
+        
         setShowAnswer(true);
     };
 
@@ -143,6 +186,16 @@ const VocabPractice: React.FC = () => {
                                 <View style={styles.difficultyBadge}>
                                     <Text style={styles.difficultyText}>SAT</Text>
                                 </View>
+                            </View>
+
+                            <View style={styles.statsContainer}>
+                                <Text style={styles.statsText}>
+                                    Questions: {practiceStats.questionsAnswered} | 
+                                    Correct: {practiceStats.correctAnswers} | 
+                                    Score: {practiceStats.questionsAnswered > 0 
+                                        ? Math.round((practiceStats.correctAnswers / practiceStats.questionsAnswered) * 100) 
+                                        : 0}%
+                                </Text>
                             </View>
 
                             <View style={styles.wordContainer}>
@@ -207,14 +260,7 @@ const VocabPractice: React.FC = () => {
                             </View>
                         </>
                     ) : (
-                        <View style={styles.noQuestionsContainer}>
-                            <Text style={styles.noQuestionsText}>
-                                No vocabulary words available.
-                            </Text>
-                            <TouchableOpacity style={styles.button} onPress={loadWord}>
-                                <Text style={styles.buttonText}>Try Again</Text>
-                            </TouchableOpacity>
-                        </View>
+                        <Text style={styles.errorText}>No vocabulary word available</Text>
                     )}
                 </View>
             </ScrollView>
@@ -225,211 +271,182 @@ const VocabPractice: React.FC = () => {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#F7F9FC',
     },
     scrollView: {
         flexGrow: 1,
         padding: 16,
     },
+    container: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+    },
     loadingContainer: {
         flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        height: height * 0.75,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F7F9FC',
     },
     loadingText: {
         marginTop: 16,
         fontSize: 16,
-        color: '#2E5BFF',
-    },
-    container: {
-        minHeight: height * 0.75,
-        width: width,
-        padding: 16,
+        color: '#333',
     },
     header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 16,
-        paddingBottom: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E4E9F2',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        marginBottom: 20,
     },
     title: {
         fontSize: 24,
-        fontWeight: "bold",
-        color: '#1A1A2E',
-        flex: 1,
+        fontWeight: 'bold',
+        color: '#333',
     },
     difficultyBadge: {
+        backgroundColor: '#2E5BFF',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
-        backgroundColor: '#2E5BFF',
     },
     difficultyText: {
+        color: 'white',
+        fontWeight: 'bold',
+    },
+    statsContainer: {
+        backgroundColor: '#E8EAF6',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8,
+        marginBottom: 16,
+        width: '100%',
+    },
+    statsText: {
         fontSize: 14,
-        color: '#FFFFFF',
-        fontWeight: "bold",
+        color: '#333',
+        textAlign: 'center',
     },
     wordContainer: {
-        backgroundColor: '#2E5BFF',
+        backgroundColor: 'white',
+        padding: 16,
         borderRadius: 12,
-        padding: 20,
-        marginBottom: 16,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 3,
+        shadowRadius: 4,
         elevation: 2,
-        alignItems: "center",
+        marginBottom: 24,
+        width: '100%',
     },
     wordTitle: {
-        fontSize: 16,
-        fontWeight: "bold",
-        color: '#FFFFFF',
+        fontSize: 14,
+        color: '#666',
         marginBottom: 4,
     },
     word: {
-        fontSize: 32,
-        fontWeight: "bold",
-        color: '#FFFFFF',
-        textAlign: "center",
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#333',
     },
     questionContainer: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: 20,
+        width: '100%',
         marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
     },
     question: {
-        fontSize: 18,
-        fontWeight: "500",
-        lineHeight: 26,
-        color: '#1A1A2E',
+        fontSize: 16,
+        color: '#333',
     },
     optionsContainer: {
-        marginBottom: 16,
+        width: '100%',
+        marginBottom: 24,
     },
     optionButton: {
-        flexDirection: "row",
-        backgroundColor: '#FFFFFF',
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: 'white',
         padding: 16,
-        borderRadius: 8,
-        marginBottom: 8,
+        borderRadius: 12,
+        marginBottom: 12,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
+        shadowOpacity: 0.1,
         shadowRadius: 2,
         elevation: 1,
-        alignItems: "flex-start",
     },
     selectedOption: {
-        backgroundColor: '#E1F0FF',
-        borderColor: '#2E5BFF',
+        backgroundColor: '#E3F2FD',
+        borderColor: '#2196F3',
         borderWidth: 1,
     },
     correctOption: {
-        backgroundColor: '#D4EDDA',
-        borderColor: '#00C48C',
+        backgroundColor: '#E8F5E9',
+        borderColor: '#4CAF50',
         borderWidth: 1,
     },
     incorrectOption: {
-        backgroundColor: '#F8D7DA',
-        borderColor: '#FF647C',
+        backgroundColor: '#FFEBEE',
+        borderColor: '#F44336',
         borderWidth: 1,
     },
     optionKey: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: '#F4F6FA',
-        textAlign: "center",
-        lineHeight: 30,
-        marginRight: 16,
-        fontWeight: "bold",
-        color: '#1A1A2E',
         fontSize: 16,
+        fontWeight: 'bold',
+        color: '#2E5BFF',
+        marginRight: 12,
+        width: 20,
     },
     optionText: {
         fontSize: 16,
-        color: '#1A1A2E',
+        color: '#333',
         flex: 1,
     },
     explanationContainer: {
-        backgroundColor: '#F8F9FA',
-        borderRadius: 12,
+        backgroundColor: '#F5F5F5',
         padding: 16,
-        marginBottom: 16,
-        borderLeftWidth: 4,
-        borderLeftColor: '#2E5BFF',
+        borderRadius: 12,
+        width: '100%',
+        marginBottom: 24,
     },
     explanationTitle: {
-        fontSize: 18,
-        fontWeight: "bold",
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#333',
         marginBottom: 8,
-        color: '#1A1A2E',
     },
     explanation: {
         fontSize: 16,
+        color: '#333',
         lineHeight: 24,
-        color: '#1A1A2E',
     },
     buttonsContainer: {
-        marginTop: 16,
+        width: '100%',
     },
     button: {
         backgroundColor: '#2E5BFF',
         paddingVertical: 16,
         borderRadius: 12,
-        alignItems: "center",
-        marginBottom: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
+        alignItems: 'center',
     },
     buttonDisabled: {
-        backgroundColor: '#8F9BB3',
+        backgroundColor: '#B0BEC5',
     },
     buttonText: {
-        color: '#FFFFFF',
+        color: 'white',
         fontSize: 16,
-        fontWeight: "bold",
+        fontWeight: 'bold',
+    },
+    errorText: {
+        fontSize: 16,
+        color: '#F44336',
+        marginBottom: 16,
     },
     retryButton: {
         backgroundColor: '#2E5BFF',
-        paddingVertical: 16,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
         borderRadius: 12,
-        marginTop: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    noQuestionsContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    noQuestionsText: {
-        fontSize: 18,
-        color: '#8F9BB3',
-        textAlign: "center",
-        marginBottom: 20,
-    },
-    errorText: {
-        fontSize: 18,
-        color: '#FF647C',
-        textAlign: "center",
     },
 });
 
