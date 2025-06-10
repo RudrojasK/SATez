@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const mockTests = [
@@ -71,8 +71,20 @@ export default function PracticeScreen() {
 
 // Quizzes View Component
 const QuizzesView = () => {
-  const [activeQuizTab, setActiveQuizTab] = useState<QuizTab>('Reading');
+  const params = useLocalSearchParams();
+  const initialTab = typeof params.tab === 'string' && ['Math', 'Reading', 'Writing'].includes(params.tab) 
+    ? params.tab as QuizTab 
+    : 'Reading';
+  
+  const [activeQuizTab, setActiveQuizTab] = useState<QuizTab>(initialTab);
   const router = useRouter();
+  
+  // Effect to handle deep links and tab changes from parameters
+  useEffect(() => {
+    if (typeof params.tab === 'string' && ['Math', 'Reading', 'Writing'].includes(params.tab)) {
+      setActiveQuizTab(params.tab as QuizTab);
+    }
+  }, [params.tab]);
 
   return (
     <ScrollView style={styles.contentScrollView}>

@@ -158,7 +158,7 @@ const HomeScreen = () => {
           <PracticeCard 
             title="Math"
             icon="calculator-outline"
-            onPress={() => router.push('/(tabs)/practice')}
+            onPress={() => router.push('/(tabs)/practice?tab=Math')}
           />
           <PracticeCard 
             title="Reading"
