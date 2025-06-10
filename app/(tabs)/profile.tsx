@@ -1,40 +1,111 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../context/AuthContext';
+import { usePracticeData } from '../context/PracticeDataContext';
 
 const ProfileScreen = () => {
-  // Mock data based on the screenshot
-  const user = {
-    name: 'Ethan Carter',
-    goal: 'SAT Prep',
-    avatar: 'https://i.imgur.com/8a5mJ2s.png', // A URL for the avatar image
+  const { user } = useAuth();
+  const { stats, statsLoading, fetchUserStats } = usePracticeData();
+
+  useEffect(() => {
+    fetchUserStats();
+  }, []);
+
+  // Default avatar if user doesn't have one
+  const avatarUrl = user?.avatar || 'https://i.imgur.com/8a5mJ2s.png';
+
+  // Calculate math and reading scores based on performance
+  const getMathScore = () => {
+    if (!stats) return 750; // Default score if no stats
+    const mathCorrectRate = stats.testQuestionCount > 0 
+      ? Math.round((stats.correctAnswers / stats.testQuestionCount) * 100) 
+      : 75;
+    return Math.min(800, 600 + mathCorrectRate * 2); // Score between 600-800 based on performance
   };
 
-  const recentScores = [
-    { subject: 'Math', score: 750, icon: 'calculator-outline' },
-    { subject: 'Reading', score: 720, icon: 'book-outline' },
-  ];
+  const getReadingScore = () => {
+    if (!stats) return 720; // Default score if no stats
+    const readingCorrectRate = stats.readingCount > 0 
+      ? Math.round((stats.correctAnswers / stats.readingCount) * 100)
+      : 72;
+    return Math.min(800, 600 + readingCorrectRate * 2); // Score between 600-800 based on performance
+  };
 
-  const upcomingTests = [
-    {
-      date: 'Saturday, July 20th',
-      type: 'Full Practice Test',
-      icon: 'calendar-outline',
-    },
-  ];
+  // Determine study recommendations based on performance
+  const getRecommendations = () => {
+    if (!stats) return [
+      { subject: 'Math', focus: 'Focus on Algebra', icon: 'calculator-outline' },
+      { subject: 'Reading', focus: 'Improve Reading Comprehension', icon: 'book-outline' },
+    ];
 
-  const recommendations = [
-    {
-      subject: 'Math',
-      focus: 'Focus on Algebra',
-      icon: 'calculator-outline',
-    },
-    {
-      subject: 'Reading',
-      focus: 'Improve Reading Comprehension',
-      icon: 'book-outline',
-    },
-  ];
+    const recommendations = [];
+    
+    // Math recommendation
+    const mathScore = getMathScore();
+    if (mathScore < 700) {
+      recommendations.push({ 
+        subject: 'Math', 
+        focus: 'Focus on Algebra Fundamentals', 
+        icon: 'calculator-outline' 
+      });
+    } else if (mathScore < 750) {
+      recommendations.push({ 
+        subject: 'Math', 
+        focus: 'Practice Advanced Problems', 
+        icon: 'calculator-outline' 
+      });
+    } else {
+      recommendations.push({ 
+        subject: 'Math', 
+        focus: 'Maintain Your Math Skills', 
+        icon: 'calculator-outline' 
+      });
+    }
+    
+    // Reading recommendation
+    const readingScore = getReadingScore();
+    if (readingScore < 700) {
+      recommendations.push({ 
+        subject: 'Reading', 
+        focus: 'Improve Reading Comprehension', 
+        icon: 'book-outline' 
+      });
+    } else if (readingScore < 750) {
+      recommendations.push({ 
+        subject: 'Reading', 
+        focus: 'Practice Analytical Reading', 
+        icon: 'book-outline' 
+      });
+    } else {
+      recommendations.push({ 
+        subject: 'Reading', 
+        focus: 'Maintain Your Reading Skills', 
+        icon: 'book-outline' 
+      });
+    }
+    
+    return recommendations;
+  };
+
+  // Calculate upcoming test date (example: next Saturday)
+  const getUpcomingTestDate = () => {
+    const today = new Date();
+    const nextSaturday = new Date();
+    nextSaturday.setDate(today.getDate() + (6 - today.getDay() + 7) % 7);
+    
+    const options: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
+    return nextSaturday.toLocaleDateString('en-US', options);
+  };
+
+  if (statsLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4a90e2" />
+        <Text style={styles.loadingText}>Loading profile data...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -48,28 +119,37 @@ const ProfileScreen = () => {
 
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
-            <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           </View>
           <View>
-            <Text style={styles.name}>{user.name}</Text>
-            <Text style={styles.goal}>{user.goal}</Text>
+            <Text style={styles.name}>{user?.name || 'User'}</Text>
+            <Text style={styles.goal}>SAT Prep</Text>
           </View>
         </View>
 
         <Section title="Recent Scores">
-          {recentScores.map((item, index) => (
-            <ScoreCard key={index} {...item} />
-          ))}
+          <ScoreCard
+            subject="Math"
+            score={getMathScore()}
+            icon="calculator-outline"
+          />
+          <ScoreCard
+            subject="Reading"
+            score={getReadingScore()}
+            icon="book-outline"
+          />
         </Section>
         
         <Section title="Upcoming Practice Tests">
-          {upcomingTests.map((item, index) => (
-            <UpcomingTestCard key={index} {...item} />
-          ))}
+          <UpcomingTestCard
+            date={getUpcomingTestDate()}
+            type="Full Practice Test"
+            icon="calendar-outline"
+          />
         </Section>
 
         <Section title="Study Recommendations">
-          {recommendations.map((item, index) => (
+          {getRecommendations().map((item, index) => (
             <RecommendationCard key={index} {...item} />
           ))}
         </Section>
@@ -129,6 +209,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#6c757d',
   },
   header: {
     flexDirection: 'row',

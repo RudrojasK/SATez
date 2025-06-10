@@ -1,18 +1,117 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../context/AuthContext';
+import { usePracticeData } from '../context/PracticeDataContext';
 
 const HomeScreen = () => {
   const router = useRouter();
-  const userName = 'Ethan'; // Mock user name
+  const { user } = useAuth();
+  const { stats, statsLoading, fetchUserStats } = usePracticeData();
+  const [dailyQuestion, setDailyQuestion] = useState('');
+
+  useEffect(() => {
+    fetchUserStats();
+    generateDailyQuestion();
+  }, []);
+
+  // Generate a daily question based on date (pseudo-random but consistent for the day)
+  const generateDailyQuestion = () => {
+    const today = new Date();
+    const startOfYear = new Date(today.getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((today.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Array of SAT-style questions
+    const questions = [
+      "If 3x - y = 12 and x + 2y = 10, what is the value of x?",
+      "In a right triangle, if one leg is 6 and the hypotenuse is 10, what is the length of the other leg?",
+      "If f(x) = 2x² - 3x + 1, what is f(2)?",
+      "If log₃(x) = 4, what is the value of x?",
+      "The average of five numbers is 8. If the average of three of these numbers is 5, what is the average of the other two numbers?",
+      "A line has a y-intercept of 3 and a slope of 2. What is the x-intercept?",
+      "If 2^x = 8, what is the value of x?",
+      "In a geometric sequence, if the first term is 4 and the common ratio is 3, what is the fifth term?",
+      "If the angles in a triangle have measures in the ratio 3:3:4, what is the measure of the largest angle?",
+      "What is the solution to the equation |2x - 5| = 7?"
+    ];
+    
+    // Choose question based on day of year (will be consistent for the same day)
+    const questionIndex = dayOfYear % questions.length;
+    setDailyQuestion(questions[questionIndex]);
+  };
+
+  // Determine the continue learning section based on user activity
+  const getContinueLearningSection = () => {
+    if (!stats || !stats.recentSessions || stats.recentSessions.length === 0) {
+      return { title: "Reading Section", icon: "book-outline" };
+    }
+    
+    // Look at most recent session type
+    const lastSession = stats.recentSessions[0];
+    
+    if (lastSession.type === 'vocab') {
+      return { title: "Vocabulary", icon: "text-outline" };
+    } else if (lastSession.type === 'reading') {
+      return { title: "Reading Section", icon: "book-outline" };
+    } else {
+      return { title: "Math Section", icon: "calculator-outline" };
+    }
+  };
+
+  // Get a personalized tip based on user performance
+  const getDailyTip = () => {
+    if (!stats) {
+      return "For reading questions, try to read the questions before reading the passage to know what to look for.";
+    }
+    
+    // If accuracy is low, give a study tip
+    if (stats.accuracyRate < 70) {
+      return "Try to understand why you got questions wrong. Review your mistakes carefully to learn from them.";
+    }
+    
+    // If user has completed many questions, give a time management tip
+    if (stats.totalQuestions > 50) {
+      return "Practice with a timer to improve your speed. Time management is crucial for the SAT.";
+    }
+    
+    // If user hasn't practiced much, encourage more practice
+    if (stats.totalQuestions < 20) {
+      return "Consistency is key. Try to practice a little bit each day rather than cramming.";
+    }
+    
+    // Default tips
+    const tips = [
+      "For reading questions, try to read the questions before reading the passage to know what to look for.",
+      "When answering math questions, eliminate obviously wrong answers first.",
+      "Use the process of elimination on difficult questions to improve your chances.",
+      "Pay attention to transition words in reading passages - they often signal important information.",
+      "Don't spend too much time on any single question. Mark it and come back if needed."
+    ];
+    
+    // Choose a tip based on the day of month
+    const day = new Date().getDate();
+    return tips[day % tips.length];
+  };
+
+  if (statsLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4a90e2" />
+        <Text style={styles.loadingText}>Loading your dashboard...</Text>
+      </View>
+    );
+  }
+
+  // Get continue learning section
+  const continueSection = getContinueLearningSection();
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerGreeting}>Hello, {userName}!</Text>
+            <Text style={styles.headerGreeting}>Hello, {user?.name || 'Student'}!</Text>
             <Text style={styles.headerTitle}>Let's ace the SAT</Text>
           </View>
           <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
@@ -27,9 +126,12 @@ const HomeScreen = () => {
             <Text style={styles.dailyCardTitle}>Daily Question</Text>
           </View>
           <Text style={styles.dailyCardQuestion}>
-            If 3x - y = 12, what is the value of 8^x / 2^y?
+            {dailyQuestion}
           </Text>
-          <TouchableOpacity style={styles.dailyCardButton}>
+          <TouchableOpacity 
+            style={styles.dailyCardButton}
+            onPress={() => router.push('/(tabs)/practice')}
+          >
             <Text style={styles.dailyCardButtonText}>View Answer</Text>
           </TouchableOpacity>
         </View>
@@ -38,14 +140,14 @@ const HomeScreen = () => {
         <View style={styles.mainContent}>
           <FeatureCard
             title="Continue Learning"
-            subtitle="Reading Section"
-            icon="play-circle-outline"
+            subtitle={continueSection.title}
+            icon={continueSection.icon}
             color="#4a90e2"
             onPress={() => router.push('/(tabs)/practice')}
           />
           <FeatureCard
             title="Practice Test"
-            subtitle="Full-length exam"
+            subtitle={`Completed: ${stats?.testQuestionCount || 0} questions`}
             icon="document-text-outline"
             color="#50e3c2"
             onPress={() => router.push('/(tabs)/practice')}
@@ -74,7 +176,7 @@ const HomeScreen = () => {
           <View style={styles.tipCard}>
             <Ionicons name="bulb-outline" size={24} color="#0d1b2a" style={{marginRight: 10}} />
             <Text style={styles.tipText}>
-              For reading questions, try to read the questions before reading the passage to know what to look for.
+              {getDailyTip()}
             </Text>
           </View>
         </Section>
@@ -114,6 +216,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#6c757d',
   },
   header: {
     flexDirection: 'row',
