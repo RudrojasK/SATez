@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Modal, 
-  TouchableOpacity, 
-  FlatList, 
-  Alert 
-} from 'react-native';
+import { COLORS, SHADOWS, SIZES } from '@/constants/Colors';
+import { FavoriteResponse, FavoriteResponsesStorage } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SIZES, SHADOWS } from '@/constants/Colors';
-import { FavoriteResponsesStorage, FavoriteResponse } from '@/utils/storage';
 import * as Clipboard from 'expo-clipboard';
+import React, { useEffect, useState } from 'react';
+import {
+    Alert,
+    FlatList,
+    Modal,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 interface FavoriteResponsesModalProps {
   visible: boolean;
@@ -78,17 +78,13 @@ export const FavoriteResponsesModal = ({ visible, onClose }: FavoriteResponsesMo
             style={styles.actionButton}
             onPress={() => handleCopyResponse(item)}
           >
-            <Text>
-              <Ionicons name="copy-outline" size={20} color={COLORS.textLight} />
-            </Text>
+            <Ionicons name="copy-outline" size={20} color={COLORS.textLight} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.actionButton}
             onPress={() => handleDeleteFavorite(item.id)}
           >
-            <Text>
-              <Ionicons name="trash-outline" size={20} color={COLORS.textLight} />
-            </Text>
+            <Ionicons name="trash-outline" size={20} color={COLORS.textLight} />
           </TouchableOpacity>
         </View>
       </View>
@@ -106,9 +102,7 @@ export const FavoriteResponsesModal = ({ visible, onClose }: FavoriteResponsesMo
         <View style={styles.header}>
           <Text style={styles.title}>Saved Answers</Text>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text>
-              <Ionicons name="close" size={24} color={COLORS.text} />
-            </Text>
+            <Ionicons name="close" size={24} color={COLORS.text} />
           </TouchableOpacity>
         </View>
         

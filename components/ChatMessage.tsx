@@ -53,7 +53,8 @@ export const ChatMessage = ({ message, isLastMessage }: ChatMessageProps) => {
     // Remove the quiz example tags and content
     content = content.replace(/<quiz-example>[\s\S]*?<\/quiz-example>/g, '').trim();
     
-    return content;
+    // Safety check: ensure content is never empty or just whitespace
+    return content || 'Hello! I\'m your SAT tutor. How can I help you prepare for the exam today?';
   }, [message.content, isUser]);
   
   // Extract quiz example from message content if it exists

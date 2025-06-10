@@ -2,47 +2,56 @@ import { ChatMessage } from '@/components/ChatMessage';
 import { FavoriteResponsesModal } from '@/components/FavoriteResponsesModal';
 import { COLORS, SHADOWS, SIZES } from '@/constants/Colors';
 import {
-    createInitialMessages,
-    fetchGroqCompletion,
-    Message
+  createInitialMessages,
+  fetchGroqCompletion,
+  Message
 } from '@/utils/groq';
 import { lightHapticFeedback, mediumHapticFeedback } from '@/utils/haptics';
 import { ChatHistoryStorage } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 export default function TutorScreen() {
-  const [messages, setMessages] = useState<Message[]>(() => createInitialMessages());
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
+  const [messagesLoaded, setMessagesLoaded] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
   
+  // Initialize messages
+  useEffect(() => {
+    setMessages(createInitialMessages());
+    setMessagesLoaded(true);
+  }, []);
+  
   // Scroll to bottom when messages change
   useEffect(() => {
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  }, [messages]);
+    if (messagesLoaded) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages, messagesLoaded]);
   
   // Save chat history when messages change
   useEffect(() => {
-    if (messages.length > 1) { // Don't save empty chats
+    if (messages.length > 1 && messagesLoaded) { // Don't save empty chats
       const saveCurrentChat = async () => {
         try {
           const chatId = 'current-chat';
@@ -65,7 +74,7 @@ export default function TutorScreen() {
       
       saveCurrentChat();
     }
-  }, [messages]);
+  }, [messages, messagesLoaded]);
   
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
@@ -142,7 +151,7 @@ export default function TutorScreen() {
   };
   
   // Get visible messages (exclude system messages)
-  const visibleMessages = messages.filter(m => m.role !== 'system');
+  const visibleMessages = messagesLoaded ? messages.filter(m => m.role !== 'system') : [];
   
   return (
     <SafeAreaView style={styles.container}>
@@ -170,6 +179,7 @@ export default function TutorScreen() {
       />
       
       <KeyboardAvoidingView
+        key={messagesLoaded ? 'loaded' : 'loading'}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.chatContainer}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
@@ -192,7 +202,7 @@ export default function TutorScreen() {
           </View>
           
           {/* Chat messages */}
-          {visibleMessages.map((message, index) => (
+          {messagesLoaded && visibleMessages.map((message, index) => (
             <ChatMessage 
               key={message.id} 
               message={message} 
