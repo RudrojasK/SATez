@@ -163,7 +163,7 @@ const HomeScreen = () => {
           <PracticeCard 
             title="Reading"
             icon="book-outline"
-            onPress={() => router.push('/(tabs)/practice')}
+            onPress={() => router.push('/(tabs)/practice?tab=Reading')}
           />
           <PracticeCard 
             title="Writing"
