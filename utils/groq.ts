@@ -1,9 +1,11 @@
 // GROQ API integration for the tutor feature
 // This file manages communications with the GROQ API for LLM conversations
 
+// import { ApiKeyStorage } from './storage';
+
 // API key for GROQ integration - Using a fixed API key for all users
 // This is a shared API key for simplicity - in production, you would want to handle this more securely
-export const GROQ_API_KEY = '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';
+export const GROQ_API_KEY = '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';
 
 // The model to be used for conversations
 export const DEFAULT_MODEL = "llama3-70b-8192";
@@ -226,7 +228,8 @@ export function createInitialMessages(): Message[] {
   const welcomeMessage: Message = {
     id: 'assistant-1',
     role: 'assistant',
-    content: `Hello! I'm your SAT tutor. How can I help you prepare for the exam today?`,
+    content: `Not math
+Hello! I'm your SAT tutor. How can I help you prepare for the exam today?`,
     timestamp: Date.now() + 1
   };
   

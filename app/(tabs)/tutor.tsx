@@ -26,7 +26,7 @@ import {
 } from 'react-native';
 
 export default function TutorScreen() {
-  const [messages, setMessages] = useState<Message[]>(createInitialMessages());
+  const [messages, setMessages] = useState<Message[]>(() => createInitialMessages());
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
@@ -105,7 +105,7 @@ export default function TutorScreen() {
       
       // Add assistant response to messages
       setMessages(prevMessages => [...prevMessages, response]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching response from GROQ:", error);
       
       // Show error message
@@ -389,16 +389,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   apiKeyInput: {
-    width: '100%',
+    flex: 1,
     height: 48,
+    paddingHorizontal: 16,
+    color: COLORS.text,
+    fontSize: 16,
+  },
+  apiKeyInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
     backgroundColor: COLORS.card,
     borderRadius: SIZES.radius,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingHorizontal: 16,
-    color: COLORS.text,
-    fontSize: 16,
     marginBottom: 16,
+  },
+  apiKeyVisibilityButton: {
+    padding: 12,
   },
   apiKeySaveButton: {
     backgroundColor: COLORS.primary,
