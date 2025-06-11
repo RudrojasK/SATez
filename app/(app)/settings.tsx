@@ -48,14 +48,14 @@ export default function SettingsScreen() {
             icon="mail-outline" 
             title="Email"
             subtitle={user?.email || 'user@example.com'}
-            onPress={() => {}}
+            onPress={() => router.push("/(app)/account-settings")}
             hasChevron
           />
           <SettingsItem 
             icon="lock-closed-outline" 
             title="Change Password"
             subtitle="Update your security credentials"
-            onPress={() => {}}
+            onPress={() => router.push("/(app)/account-settings")}
             hasChevron
           />
         </Section>

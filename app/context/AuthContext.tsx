@@ -32,6 +32,9 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateProfile: (data: ProfileUpdateData) => Promise<void>;
+  updateEmail: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
+  resetPasswordForEmail: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -218,6 +221,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateEmail = async (email: string) => {
+    if (!user) throw new Error('User not authenticated');
+
+    try {
+      const { error } = await supabase.auth.updateUser({ email });
+      
+      if (error) throw error;
+      
+      // Note: Email change requires confirmation
+      // The system will send verification emails to both the old and new email addresses
+      // User needs to click the verification link in the new email to complete the change
+      
+      // No need to refresh user data yet, will happen when email is confirmed
+    } catch (error) {
+      console.error('Error updating email:', error);
+      throw error;
+    }
+  };
+
+  const updatePassword = async (password: string) => {
+    if (!user) throw new Error('User not authenticated');
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      
+      if (error) throw error;
+      
+      // Password update is immediate
+      await refreshUser();
+    } catch (error) {
+      console.error('Error updating password:', error);
+      throw error;
+    }
+  };
+
+  const resetPasswordForEmail = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      
+      if (error) throw error;
+      
+      // Password reset email has been sent
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     supabaseUser,
@@ -230,6 +281,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     refreshUser,
     updateProfile,
+    updateEmail,
+    updatePassword,
+    resetPasswordForEmail,
   };
 
   return (
