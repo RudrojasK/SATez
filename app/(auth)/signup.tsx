@@ -21,17 +21,19 @@ import { useAuth } from '../context/AuthContext';
 const { width, height } = Dimensions.get('window');
 
 export default function SignupScreen() {
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
   const { signUp } = useAuth();
 
   const handleSignup = async () => {
-    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -48,7 +50,11 @@ export default function SignupScreen() {
 
     try {
       setIsLoading(true);
-      await signUp(email.trim(), password, name.trim());
+      const fullName = `${firstName.trim()} ${lastName.trim()}`;
+      await signUp(email.trim(), password, fullName);
+      
+      // We'll skip redirecting to profile setup for now
+      // The AuthContext will handle navigation after signup
     } catch (error: any) {
       Alert.alert('Signup Failed', error.message || 'Failed to create account');
     } finally {
@@ -79,19 +85,37 @@ export default function SignupScreen() {
             </View>
 
             <View style={styles.formContainer}>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Full Name</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Enter your full name"
-                    placeholderTextColor="#999"
-                    value={name}
-                    onChangeText={setName}
-                    autoCapitalize="words"
-                    autoCorrect={false}
-                  />
+              <View style={styles.nameRow}>
+                <View style={[styles.inputContainer, styles.nameInput]}>
+                  <Text style={styles.inputLabel}>First Name</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="First"
+                      placeholderTextColor="#999"
+                      value={firstName}
+                      onChangeText={setFirstName}
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+
+                <View style={[styles.inputContainer, styles.nameInput]}>
+                  <Text style={styles.inputLabel}>Last Name</Text>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Last"
+                      placeholderTextColor="#999"
+                      value={lastName}
+                      onChangeText={setLastName}
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                    />
+                  </View>
                 </View>
               </View>
 
@@ -266,6 +290,13 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  nameInput: {
+    width: '48.5%', // Setting width for each name input field
   },
   inputContainer: {
     marginBottom: 16,

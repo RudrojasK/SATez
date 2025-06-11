@@ -25,6 +25,8 @@ interface AuthContextType {
   supabaseUser: SupabaseUser | null;
   session: Session | null;
   isLoading: boolean;
+  isNewUser: boolean;
+  setIsNewUser: (value: boolean) => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -47,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -149,8 +152,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-      setIsLoading(true);
-    const { error } = await supabase.auth.signUp({
+    setIsLoading(true);
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -165,6 +168,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       throw error;
     }
+    
+    // Set new user flag to true, but don't redirect (handled by onAuthStateChange)
+    if (data?.user) {
+      setIsNewUser(true);
+    }
+    
     // onAuthStateChange will handle setting user and session state
   };
 
@@ -214,6 +223,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabaseUser,
     session,
     isLoading,
+    isNewUser,
+    setIsNewUser,
     signIn,
     signUp,
     signOut,
