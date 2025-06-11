@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { usePracticeData } from '../context/PracticeDataContext';
 
 const ProfileScreen = () => {
+  const router = useRouter();
   const { user } = useAuth();
   const { stats, statsLoading, fetchUserStats } = usePracticeData();
 
@@ -112,7 +114,7 @@ const ProfileScreen = () => {
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Dashboard</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/(app)/settings")}>
             <Ionicons name="settings-outline" size={24} color="#0d1b2a" />
           </TouchableOpacity>
         </View>

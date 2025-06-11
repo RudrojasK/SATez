@@ -115,6 +115,14 @@ export default function TabLayout() {
           headerShown: false,
         }}
       />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          headerShown: false,
+          tabBarItemStyle: { display: "none" }
+        }}
+      />
     </Tabs>
   );
 }

@@ -10,6 +10,9 @@ export const GROQ_API_KEY = 'gsk_ZXhWqXCv37mgRhvALdYkWGdyb3FYIz1dMl5Gu7dKD1PqBLD
 // The model to be used for conversations
 export const DEFAULT_MODEL = "llama3-70b-8192";
 
+// The model to be used for image analysis
+export const IMAGE_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+
 // Base URL for the GROQ API
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -19,6 +22,7 @@ export interface Message {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: number;
+  imageUri?: string; // Optional image URI for image analysis
 }
 
 // Interface for chat parameters
@@ -27,6 +31,7 @@ export interface ChatParams {
   model?: string;
   temperature?: number;
   max_tokens?: number;
+  includeImage?: boolean; // Flag to indicate if we're including an image
 }
 
 /**
@@ -38,11 +43,52 @@ export function isApiKeyConfigured(): boolean {
 }
 
 /**
+ * Convert image to base64 for API submission
+ * Groq supports a maximum of 4MB for base64 encoded images
+ */
+export async function imageToBase64(uri: string): Promise<string> {
+  try {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    
+    // Check size limits (Groq has a 4MB limit for base64 encoded images)
+    const fileSizeInBytes = blob.size;
+    const fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+    
+    if (fileSizeInMB > 4) {
+      console.warn(`Image size (${fileSizeInMB.toFixed(2)}MB) exceeds Groq's 4MB limit. The request may fail.`);
+    }
+    
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Extract base64 data part from the result
+        const base64data = reader.result as string;
+        const base64Content = base64data.split(',')[1];
+        resolve(base64Content);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Error converting image to base64:', error);
+    throw error;
+  }
+}
+
+/**
  * Sends a chat completion request to the GROQ API
  * Always uses the hardcoded API key for simplicity
+ * Now supports image analysis using Llama 4 Scout
  */
 export async function fetchGroqCompletion(params: ChatParams): Promise<Message> {
-  const { messages, model = DEFAULT_MODEL, temperature = 0.5, max_tokens = 2048 } = params;
+  const { 
+    messages, 
+    model = DEFAULT_MODEL, 
+    temperature = 0.5, 
+    max_tokens = 2048,
+    includeImage = false
+  } = params;
   
   // Important: Always use the hardcoded API key directly, do not check storage
   // This ensures all users share the same API key for simplicity
@@ -52,14 +98,44 @@ export async function fetchGroqCompletion(params: ChatParams): Promise<Message> 
     throw new Error('GROQ API key is not configured');
   }
   
+  // Use image model if we're including an image
+  const selectedModel = includeImage ? IMAGE_MODEL : model;
+  
   // Convert our message format to GROQ's expected format
-  const groqMessages = messages.map(({ role, content }) => ({
-    role,
-    content
+  const groqMessages = await Promise.all(messages.map(async ({ role, content, imageUri }) => {
+    // For text-only messages
+    if (!imageUri) {
+      return { role, content };
+    }
+    
+    // For messages with images, create a content array with text and image
+    // Following Groq's vision API format for Llama 4 Scout
+    try {
+      const base64Image = await imageToBase64(imageUri);
+      
+      return {
+        role,
+        content: [
+          { type: "text", text: content },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:image/jpeg;base64,${base64Image}`
+              // No need for "detail" parameter with Llama 4 Scout
+            }
+          }
+        ]
+      };
+    } catch (error) {
+      console.error('Error processing image:', error);
+      // Fallback to text-only if image processing fails
+      return { role, content };
+    }
   }));
 
   try {
     console.log('Using hardcoded GROQ API key');
+    console.log(`Using model: ${selectedModel}${includeImage ? ' (with image support)' : ''}`);
     
     const response = await fetch(GROQ_API_URL, {
       method: 'POST',
@@ -68,10 +144,14 @@ export async function fetchGroqCompletion(params: ChatParams): Promise<Message> 
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model,
+        model: selectedModel,
         messages: groqMessages,
         temperature,
-        max_tokens
+        max_tokens,
+        // Add proper Groq parameters for the vision model
+        top_p: 1,
+        stream: false,
+        stop: null
       })
     });
 
@@ -109,6 +189,10 @@ Your goal is to provide clear, concise, and accurate information to help student
 improve their scores. You can explain concepts, provide practice questions, 
 offer study strategies, and give personalized advice based on students' needs.
 
+You are especially skilled at analyzing images of math problems, handwritten work, textbook pages,
+or practice questions that students upload. You can identify mathematical concepts,
+solve equations, spot errors in work, and provide detailed step-by-step solutions.
+
 CRITICAL FORMATTING RULES:
 1. ALWAYS start your response with EXACTLY one line containing either "Math question" or "Not math"
 2. Put this status line on its own line, then start your actual response on the next line
@@ -119,6 +203,23 @@ IMPORTANT: You MUST start every response with EXACTLY one of these two lines as 
 - "Not math" (if the user is asking about anything else - reading, writing, general SAT info, study tips, etc.)
 
 This categorization line will be automatically removed before showing your response to the user, so do not reference it in your answer.
+
+FOR IMAGE ANALYSIS:
+When a student uploads an image containing a math problem or handwritten work:
+1. Carefully analyze all elements in the image - equations, diagrams, graphs, handwritten work
+2. For typed or printed math problems, transcribe the problem accurately first
+3. For handwritten work, interpret the student's work and identify where they might be making mistakes
+4. For math problems:
+   - Identify the key mathematical concepts involved
+   - Break down the problem into clear steps
+   - Provide a complete step-by-step solution
+   - Explain the reasoning behind each step
+   - Point out common pitfalls or misconceptions
+5. If the image contains a practice SAT question:
+   - Identify the correct answer and explain why
+   - Discuss why the other options are incorrect
+   - Suggest strategies for similar problems
+6. Always categorize image-based math problems as "Math question" and include a quiz example
 
 QUIZ EXAMPLE RULES: You MUST generate a quiz example when you categorize the input as "Math question". For math questions, ALWAYS include a quiz example. For non-math questions, NEVER include a quiz example.
 
@@ -229,7 +330,15 @@ export function createInitialMessages(): Message[] {
     id: 'assistant-1',
     role: 'assistant',
     content: `Not math
-Hello! I'm your SAT tutor. How can I help you prepare for the exam today?`,
+Hello! I'm your SAT tutor. I can help with math problems, reading/writing questions, and test strategies. You can:
+
+• Ask me questions about any SAT topic
+• Upload images of math problems for step-by-step solutions
+• Share pictures of your handwritten work for feedback
+• Get help with practice questions from textbooks
+• Request study tips and strategies
+
+What would you like help with today?`,
     timestamp: Date.now() + 1
   };
   

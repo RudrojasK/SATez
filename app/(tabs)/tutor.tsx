@@ -9,10 +9,12 @@ import {
 import { lightHapticFeedback, mediumHapticFeedback } from '@/utils/haptics';
 import { ChatHistoryStorage } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -31,6 +33,8 @@ export default function TutorScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showImageOptions, setShowImageOptions] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
   
@@ -75,9 +79,90 @@ export default function TutorScreen() {
       saveCurrentChat();
     }
   }, [messages, messagesLoaded]);
+
+  // Request camera permissions
+  const requestCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Required',
+        'Camera access is needed to take photos of your math problems.',
+        [{ text: 'OK' }]
+      );
+      return false;
+    }
+    return true;
+  };
+
+  // Request media library permissions
+  const requestMediaLibraryPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Required',
+        'Media library access is needed to upload photos of your math problems.',
+        [{ text: 'OK' }]
+      );
+      return false;
+    }
+    return true;
+  };
+
+  // Take a photo with the camera
+  const takePhoto = async () => {
+    setShowImageOptions(false);
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedImage(result.assets[0].uri);
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
+  };
+
+  // Pick an image from the library
+  const pickImage = async () => {
+    setShowImageOptions(false);
+    const hasPermission = await requestMediaLibraryPermission();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedImage(result.assets[0].uri);
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
+  // Cancel image selection
+  const cancelImageSelection = () => {
+    setSelectedImage(null);
+  };
   
   const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() && !selectedImage) return;
     
     // Trigger light haptic feedback when sending a message
     lightHapticFeedback();
@@ -86,21 +171,23 @@ export default function TutorScreen() {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: inputText.trim(),
-      timestamp: Date.now()
+      content: inputText.trim() || "Can you analyze this image for me?",
+      timestamp: Date.now(),
+      imageUri: selectedImage || undefined
     };
     
     // Add a reinforcement message to ensure quiz examples
     const quizReminderMessage: Message = {
       id: 'quiz-reminder-' + Date.now().toString(),
       role: 'system',
-      content: 'Remember to include a quiz example in your response using the <quiz-example> JSON format. The quiz should relate to the student\'s question and help them practice similar concepts.',
+      content: 'Remember to include a quiz example in your response using the <quiz-example> JSON format if appropriate. The quiz should relate to the student\'s question and help them practice similar concepts.',
       timestamp: Date.now()
     };
     
     // Update state with user message
     setMessages(prevMessages => [...prevMessages, userMessage]);
     setInputText('');
+    setSelectedImage(null);
     Keyboard.dismiss();
     
     // Start loading state
@@ -110,6 +197,7 @@ export default function TutorScreen() {
       // Call GROQ API with the reminder message
       const response = await fetchGroqCompletion({
         messages: [...messages, quizReminderMessage, userMessage],
+        includeImage: !!userMessage.imageUri, // Use image model if image is included
       });
       
       // Add assistant response to messages
@@ -148,6 +236,11 @@ export default function TutorScreen() {
   
   const handleShowFavorites = () => {
     setShowFavorites(true);
+  };
+  
+  // Toggle image options menu
+  const toggleImageOptions = () => {
+    setShowImageOptions(!showImageOptions);
   };
   
   // Get visible messages (exclude system messages)
@@ -198,6 +291,7 @@ export default function TutorScreen() {
             <Text style={styles.welcomeTitle}>SAT Tutor</Text>
             <Text style={styles.welcomeText}>
               Ask questions about the SAT, get help with practice problems, or get study tips.
+              You can also upload or take photos of math problems for analysis.
             </Text>
           </View>
           
@@ -210,6 +304,17 @@ export default function TutorScreen() {
             />
           ))}
           
+          {/* Preview of selected image */}
+          {selectedImage && (
+            <View style={styles.selectedImageContainer}>
+              <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
+              <TouchableOpacity style={styles.cancelImageButton} onPress={cancelImageSelection}>
+                <Ionicons name="close-circle" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={styles.imageHelpText}>Tap send to get help with this problem</Text>
+            </View>
+          )}
+          
           {/* Loading indicator */}
           {isLoading && (
             <View style={styles.loadingContainer}>
@@ -219,13 +324,43 @@ export default function TutorScreen() {
           )}
         </ScrollView>
         
+        {/* Image options menu */}
+        {showImageOptions && (
+          <View style={styles.imageOptionsContainer}>
+            <TouchableOpacity style={styles.imageOptionButton} onPress={takePhoto}>
+              <Ionicons name="camera-outline" size={24} color="#FFFFFF" />
+              <Text style={styles.imageOptionText}>Take Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.imageOptionButton} onPress={pickImage}>
+              <Ionicons name="image-outline" size={24} color="#FFFFFF" />
+              <Text style={styles.imageOptionText}>Choose from Gallery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.imageOptionButton} onPress={toggleImageOptions}>
+              <Ionicons name="close-outline" size={24} color="#FFFFFF" />
+              <Text style={styles.imageOptionText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        
         {/* Input area */}
         <View style={styles.inputContainer}>
+          <TouchableOpacity 
+            style={styles.imageButton} 
+            onPress={toggleImageOptions}
+            disabled={isLoading}
+          >
+            <Ionicons 
+              name="image-outline" 
+              size={24} 
+              color={isLoading ? COLORS.textLight : COLORS.primary} 
+            />
+          </TouchableOpacity>
+          
           <TextInput
             style={styles.input}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Ask your tutor anything..."
+            placeholder={selectedImage ? "Add a description (optional)" : "Ask your tutor anything..."}
             placeholderTextColor={COLORS.textLight}
             multiline
             returnKeyType="send"
@@ -235,25 +370,19 @@ export default function TutorScreen() {
           <TouchableOpacity
             style={[
               styles.sendButton,
-              !inputText.trim() && styles.sendButtonDisabled
+              (!inputText.trim() && !selectedImage) && styles.sendButtonDisabled
             ]}
             onPress={handleSendMessage}
-            disabled={!inputText.trim() || isLoading}
+            disabled={(!inputText.trim() && !selectedImage) || isLoading}
           >
             <Ionicons
               name="send"
               size={24}
-              color={!inputText.trim() || isLoading ? COLORS.textLight : "white"}
+              color={(!inputText.trim() && !selectedImage) || isLoading ? COLORS.textLight : "white"}
             />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-      
-      {/* Favorite Responses Modal */}
-      <FavoriteResponsesModal 
-        visible={showFavorites}
-        onClose={() => setShowFavorites(false)}
-      />
     </SafeAreaView>
   );
 }
@@ -496,5 +625,62 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  selectedImageContainer: {
+    margin: 8,
+    borderRadius: SIZES.radius,
+    overflow: 'hidden',
+    position: 'relative',
+    alignSelf: 'flex-end',
+    maxWidth: '80%',
+    backgroundColor: COLORS.primary,
+  },
+  selectedImage: {
+    width: 200,
+    height: 150,
+    borderRadius: SIZES.radius,
+  },
+  cancelImageButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 15,
+  },
+  imageHelpText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+  },
+  imageOptionsContainer: {
+    position: 'absolute',
+    bottom: 70,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderTopLeftRadius: SIZES.radius,
+    borderTopRightRadius: SIZES.radius,
+    padding: 16,
+  },
+  imageOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  imageOptionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginLeft: 16,
+  },
+  imageButton: {
+    padding: 8,
+    borderRadius: 20,
+    marginRight: 8,
   },
 });

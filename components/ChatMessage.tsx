@@ -4,7 +4,7 @@ import { FavoriteResponse, FavoriteResponsesStorage } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import React, { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { QuizExample } from './QuizExample';
 
 interface ChatMessageProps {
@@ -172,6 +172,17 @@ export const ChatMessage = ({ message, isLastMessage }: ChatMessageProps) => {
         activeOpacity={0.8}
         onLongPress={() => !isUser && setShowActions(true)}
       >
+        {/* Display image if present */}
+        {message.imageUri && (
+          <View style={styles.imageContainer}>
+            <Image 
+              source={{ uri: message.imageUri }} 
+              style={styles.messageImage} 
+              resizeMode="cover"
+            />
+          </View>
+        )}
+
         <Text style={[
           styles.messageText,
           isUser ? styles.userMessageText : styles.assistantMessageText
@@ -266,6 +277,16 @@ const styles = StyleSheet.create({
   },
   assistantMessageText: {
     color: COLORS.text,
+  },
+  imageContainer: {
+    marginBottom: 10,
+    borderRadius: SIZES.smallRadius,
+    overflow: 'hidden',
+  },
+  messageImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: SIZES.smallRadius,
   },
   messageFooter: {
     flexDirection: 'row',
