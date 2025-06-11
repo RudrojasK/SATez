@@ -7,6 +7,17 @@ interface User {
   email: string;
   name: string;
   avatar?: string;
+  school?: string;
+  grade?: number;
+  target_score?: number;
+}
+
+interface ProfileUpdateData {
+  name?: string;
+  avatar_url?: string;
+  school?: string;
+  grade?: number;
+  target_score?: number;
 }
 
 interface AuthContextType {
@@ -18,6 +29,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateProfile: (data: ProfileUpdateData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,6 +110,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: data.email,
           name: data.name || data.email.split('@')[0],
           avatar: data.avatar_url,
+          school: data.school,
+          grade: data.grade,
+          target_score: data.target_score
         };
       }
       
@@ -172,6 +187,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateProfile = async (data: ProfileUpdateData) => {
+    if (!user) throw new Error('User not authenticated');
+    
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          ...data,
+          updated_at: new Date()
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      // Refresh user data
+      await refreshUser();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     supabaseUser,
@@ -181,6 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     refreshUser,
+    updateProfile,
   };
 
   return (

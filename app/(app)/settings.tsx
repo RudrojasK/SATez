@@ -6,13 +6,22 @@ import { useAuth } from '../context/AuthContext';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   
   // State for toggle switches
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [studyReminders, setStudyReminders] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(false);
+  
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      // Router will handle navigation after signOut due to AuthCheck in _layout.tsx
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
   
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -32,7 +41,7 @@ export default function SettingsScreen() {
             icon="person-outline" 
             title="Profile Information"
             subtitle="Edit your personal details"
-            onPress={() => {}}
+            onPress={() => router.push("/(app)/profile-information")}
             hasChevron
           />
           <SettingsItem 
@@ -137,8 +146,17 @@ export default function SettingsScreen() {
         </Section>
         
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={() => {}}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
+        
+        {/* Admin Tools (Developer Only) */}
+        <TouchableOpacity 
+          style={styles.adminButton} 
+          onPress={() => router.push("/(app)/admin-tools")}
+        >
+          <Ionicons name="construct-outline" size={18} color="#6c757d" style={styles.adminIcon} />
+          <Text style={styles.adminText}>Admin Tools</Text>
         </TouchableOpacity>
         
         <View style={styles.versionContainer}>
@@ -284,12 +302,30 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   logoutText: {
     color: '#dc3545',
     fontSize: 16,
     fontWeight: '600',
+  },
+  adminButton: {
+    flexDirection: 'row',
+    backgroundColor: '#e9ecef',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  adminIcon: {
+    marginRight: 8,
+  },
+  adminText: {
+    color: '#6c757d',
+    fontSize: 14,
+    fontWeight: '500',
   },
   versionContainer: {
     alignItems: 'center',

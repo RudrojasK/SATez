@@ -119,15 +119,20 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.profileSection}>
+        <TouchableOpacity 
+          style={styles.profileSection}
+          onPress={() => router.push("/(app)/profile-information")}
+          activeOpacity={0.7}
+        >
           <View style={styles.avatarContainer}>
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           </View>
-          <View>
+          <View style={styles.profileInfo}>
             <Text style={styles.name}>{user?.name || 'User'}</Text>
             <Text style={styles.goal}>SAT Prep</Text>
           </View>
-        </View>
+          <Ionicons name="chevron-forward" size={20} color="#6c757d" />
+        </TouchableOpacity>
 
         <Section title="Recent Scores">
           <ScoreCard
@@ -238,32 +243,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 20,
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#fde4cf',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 20,
+    marginRight: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  profileInfo: {
+    flex: 1,
   },
   name: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#0d1b2a',
   },
   goal: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#6c757d',
   },
   section: {
