@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import 'react-native-url-polyfill/auto';
+import { Message } from './groq';
 
 console.log('Checking Environment Variables in supabase.ts:');
 console.log('EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
@@ -253,6 +254,181 @@ export const practiceDataService = {
       };
     } catch (error) {
       console.error('Error getting user stats:', error);
+      return null;
+    }
+  }
+};
+
+// Chat history service for Supabase
+export interface ChatSession {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  is_favorite: boolean;
+}
+
+export interface ChatMessageDB {
+  id: string;
+  session_id: string;
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  image_url?: string;
+  timestamp: string;
+  sequence_order: number;
+}
+
+export const chatHistoryService = {
+  // Create a new chat session
+  async createSession(userId: string, title: string): Promise<ChatSession | null> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .insert({
+          user_id: userId,
+          title,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as ChatSession;
+    } catch (error) {
+      console.error('Error creating chat session:', error);
+      return null;
+    }
+  },
+  
+  // Get all chat sessions for a user
+  async getSessions(userId: string): Promise<ChatSession[]> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as ChatSession[];
+    } catch (error) {
+      console.error('Error getting chat sessions:', error);
+      return [];
+    }
+  },
+  
+  // Update a chat session title or favorite status
+  async updateSession(sessionId: string, updates: { title?: string, is_favorite?: boolean }): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('chat_sessions')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error updating chat session:', error);
+      return false;
+    }
+  },
+  
+  // Delete a chat session
+  async deleteSession(sessionId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('chat_sessions')
+        .delete()
+        .eq('id', sessionId);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting chat session:', error);
+      return false;
+    }
+  },
+  
+  // Add messages to a chat session
+  async addMessages(sessionId: string, messages: Message[]): Promise<boolean> {
+    try {
+      // Map app messages to database format
+      const dbMessages = messages.map((msg, index) => ({
+        session_id: sessionId,
+        role: msg.role,
+        content: msg.content,
+        image_url: msg.imageUri,
+        timestamp: new Date(msg.timestamp).toISOString(),
+        sequence_order: index
+      }));
+      
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert(dbMessages);
+      
+      if (error) throw error;
+      
+      // Update the session's updated_at timestamp
+      await this.updateSession(sessionId, {});
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding chat messages:', error);
+      return false;
+    }
+  },
+  
+  // Get all messages for a session
+  async getMessages(sessionId: string): Promise<Message[]> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('sequence_order', { ascending: true });
+      
+      if (error) throw error;
+      
+      // Convert database messages back to app format
+      return (data as ChatMessageDB[]).map(msg => ({
+        id: msg.id,
+        role: msg.role as 'system' | 'user' | 'assistant',
+        content: msg.content,
+        imageUri: msg.image_url,
+        timestamp: new Date(msg.timestamp).getTime()
+      }));
+    } catch (error) {
+      console.error('Error getting chat messages:', error);
+      return [];
+    }
+  },
+  
+  // Save current chat session to Supabase
+  async saveCurrentChat(userId: string, messages: Message[]): Promise<string | null> {
+    try {
+      if (messages.length <= 1) return null; // Don't save empty chats
+      
+      // Create a title from the first user message
+      const userMessages = messages.filter(m => m.role === 'user');
+      const title = userMessages.length > 0 
+        ? userMessages[0].content.substring(0, 30) + (userMessages[0].content.length > 30 ? '...' : '')
+        : 'New Chat';
+      
+      // Create a new session
+      const session = await this.createSession(userId, title);
+      if (!session) throw new Error('Failed to create chat session');
+      
+      // Add messages to the session
+      const success = await this.addMessages(session.id, messages);
+      if (!success) throw new Error('Failed to add messages to chat session');
+      
+      return session.id;
+    } catch (error) {
+      console.error('Error saving current chat:', error);
       return null;
     }
   }

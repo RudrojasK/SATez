@@ -1,40 +1,46 @@
+import { useAuth } from '@/app/context/AuthContext';
+import { ChatHistoryModal } from '@/components/ChatHistoryModal';
 import { ChatMessage } from '@/components/ChatMessage';
 import { FavoriteResponsesModal } from '@/components/FavoriteResponsesModal';
 import { COLORS, SHADOWS, SIZES } from '@/constants/Colors';
 import {
-  createInitialMessages,
-  fetchGroqCompletion,
-  Message
+    createInitialMessages,
+    fetchGroqCompletion,
+    Message
 } from '@/utils/groq';
 import { lightHapticFeedback, mediumHapticFeedback } from '@/utils/haptics';
 import { ChatHistoryStorage } from '@/utils/storage';
+import { chatHistoryService } from '@/utils/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 export default function TutorScreen() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
+  const [showChatHistory, setShowChatHistory] = useState(false);
   const [messagesLoaded, setMessagesLoaded] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showImageOptions, setShowImageOptions] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   
   const scrollViewRef = useRef<ScrollView>(null);
   
@@ -55,9 +61,10 @@ export default function TutorScreen() {
   
   // Save chat history when messages change
   useEffect(() => {
-    if (messages.length > 1 && messagesLoaded) { // Don't save empty chats
+    if (messages.length > 1 && messagesLoaded && user) {
       const saveCurrentChat = async () => {
         try {
+          // For local storage
           const chatId = 'current-chat';
           const userMessages = messages.filter(m => m.role === 'user');
           const title = userMessages.length > 0 
@@ -71,6 +78,18 @@ export default function TutorScreen() {
             createdAt: messages[0].timestamp,
             updatedAt: Date.now()
           });
+          
+          // For Supabase
+          if (currentSessionId) {
+            // If we're continuing an existing chat, update it
+            await chatHistoryService.addMessages(currentSessionId, messages);
+          } else {
+            // If it's a new chat, create a new session
+            const sessionId = await chatHistoryService.saveCurrentChat(user.id, messages);
+            if (sessionId) {
+              setCurrentSessionId(sessionId);
+            }
+          }
         } catch (error) {
           console.error('Failed to save chat history:', error);
         }
@@ -78,7 +97,7 @@ export default function TutorScreen() {
       
       saveCurrentChat();
     }
-  }, [messages, messagesLoaded]);
+  }, [messages, messagesLoaded, user, currentSessionId]);
 
   // Request camera permissions
   const requestCameraPermission = async () => {
@@ -228,6 +247,7 @@ export default function TutorScreen() {
             // Trigger medium haptic feedback when starting a new conversation
             mediumHapticFeedback();
             setMessages(createInitialMessages());
+            setCurrentSessionId(null);
           }
         }
       ]
@@ -236,6 +256,18 @@ export default function TutorScreen() {
   
   const handleShowFavorites = () => {
     setShowFavorites(true);
+  };
+
+  const handleShowChatHistory = () => {
+    setShowChatHistory(true);
+  };
+  
+  const handleLoadChat = (loadedMessages: Message[]) => {
+    setMessages(loadedMessages);
+    // If the first message is not our standard welcome message, add it
+    if (loadedMessages.length > 0 && loadedMessages[0].role !== 'assistant') {
+      setMessages([...createInitialMessages(), ...loadedMessages]);
+    }
   };
   
   // Toggle image options menu
@@ -251,6 +283,12 @@ export default function TutorScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Tutor</Text>
         <Text style={styles.subtitle}>Get help with your SAT prep</Text>
+        <TouchableOpacity 
+          style={styles.historyButton}
+          onPress={handleShowChatHistory}
+        >
+          <Ionicons name="list-outline" size={20} color={COLORS.textLight} />
+        </TouchableOpacity>
         <TouchableOpacity 
           style={styles.settingsButton}
           onPress={handleShowFavorites}
@@ -269,6 +307,13 @@ export default function TutorScreen() {
       <FavoriteResponsesModal
         visible={showFavorites}
         onClose={() => setShowFavorites(false)}
+      />
+      
+      {/* Chat History Modal */}
+      <ChatHistoryModal
+        visible={showChatHistory}
+        onClose={() => setShowChatHistory(false)}
+        onLoadChat={handleLoadChat}
       />
       
       <KeyboardAvoidingView
@@ -421,7 +466,7 @@ const styles = StyleSheet.create({
     padding: 8,
     marginLeft: 8,
   },
-  bookmarksButton: {
+  historyButton: {
     padding: 8,
     marginLeft: 8,
   },
