@@ -20,6 +20,12 @@ interface ProfileUpdateData {
   target_score?: number;
 }
 
+interface UserMetadata {
+  school?: string;
+  grade?: number; 
+  target_score?: number;
+}
+
 interface AuthContextType {
   user: User | null;
   supabaseUser: SupabaseUser | null;
@@ -28,7 +34,7 @@ interface AuthContextType {
   isNewUser: boolean;
   setIsNewUser: (value: boolean) => void;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, metadata?: UserMetadata) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateProfile: (data: ProfileUpdateData) => Promise<void>;
@@ -154,14 +160,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // onAuthStateChange will handle setting user and session state
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, name: string, metadata?: UserMetadata) => {
     setIsLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          name: name, // This data is used by the DB trigger
+          name,
+          ...metadata
         },
       },
     });
