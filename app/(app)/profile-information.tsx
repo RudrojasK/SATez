@@ -120,33 +120,16 @@ export default function ProfileInformationScreen() {
       
       Alert.alert(
         'Success', 
-        'Profile information updated successfully.\n\nNote: Some fields may require a database update by your administrator.',
+        'Profile information updated successfully.',
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error: any) {
       console.error('Error updating profile:', error);
       
-      if (hasDbError) {
-        Alert.alert(
-          'Database Setup Required', 
-          'Your database needs to be set up properly for profile information to work. Would you like to go to Admin Tools to fix this?',
-          [
-            { 
-              text: 'Go to Admin Tools', 
-              onPress: () => router.push("/(app)/admin-tools")
-            },
-            {
-              text: 'Cancel',
-              style: 'cancel'
-            }
-          ]
-        );
-      } else {
-        Alert.alert(
-          'Error', 
-          'Failed to update profile information. Please contact support for assistance.'
-        );
-      }
+      Alert.alert(
+        'Error', 
+        'Failed to update profile information. Please contact support for assistance.'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -180,14 +163,8 @@ export default function ProfileInformationScreen() {
           <View style={styles.errorBanner}>
             <Ionicons name="alert-circle" size={20} color="#fff" />
             <Text style={styles.errorText}>
-              Database setup needed. Please use Admin Tools to fix this.
+              Database setup issue detected. Please contact support.
             </Text>
-            <TouchableOpacity 
-              onPress={() => router.push("/(app)/admin-tools")}
-              style={styles.fixButton}
-            >
-              <Text style={styles.fixButtonText}>Fix</Text>
-            </TouchableOpacity>
           </View>
         )}
         
@@ -252,7 +229,6 @@ export default function ProfileInformationScreen() {
                 onChangeText={setSchool}
                 placeholder="Enter your school name"
               />
-              <Text style={styles.helperText}>This field may require database setup</Text>
             </View>
             
             <View style={styles.inputContainer}>
@@ -264,7 +240,6 @@ export default function ProfileInformationScreen() {
                 placeholder="Enter your grade"
                 keyboardType="number-pad"
               />
-              <Text style={styles.helperText}>This field may require database setup</Text>
             </View>
           </View>
           
@@ -280,7 +255,6 @@ export default function ProfileInformationScreen() {
                 placeholder="Enter your target SAT score"
                 keyboardType="number-pad"
               />
-              <Text style={styles.helperText}>This field may require database setup</Text>
             </View>
           </View>
           
@@ -294,21 +268,6 @@ export default function ProfileInformationScreen() {
             ) : (
               <Text style={styles.saveButtonText}>Save Changes</Text>
             )}
-          </TouchableOpacity>
-
-          <View style={styles.noteContainer}>
-            <Text style={styles.noteText}>
-              Note: Some profile fields require database setup by an administrator.
-              If you encounter any issues, please use the Admin Tools to set up the database.
-            </Text>
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.adminToolsButton} 
-            onPress={() => router.push("/(app)/admin-tools")}
-          >
-            <Ionicons name="construct-outline" size={18} color="#6c757d" style={styles.adminIcon} />
-            <Text style={styles.adminText}>Open Admin Tools</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -367,18 +326,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
     fontSize: 14,
-  },
-  fixButton: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 4,
-    marginLeft: 10,
-  },
-  fixButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 12,
   },
   avatarSection: {
     alignItems: 'center',
@@ -464,36 +411,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  noteContainer: {
-    backgroundColor: '#e9ecef',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-  },
-  noteText: {
-    fontSize: 13,
-    color: '#495057',
-    lineHeight: 18,
-  },
-  adminToolsButton: {
-    flexDirection: 'row',
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-  },
-  adminIcon: {
-    marginRight: 8,
-  },
-  adminText: {
-    color: '#6c757d',
-    fontSize: 14,
-    fontWeight: '500',
   },
 }); 
