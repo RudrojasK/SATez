@@ -3,7 +3,7 @@ import { Message } from '@/utils/groq';
 import { FavoriteResponse, FavoriteResponsesStorage } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { QuizExample } from './QuizExample';
 
@@ -24,6 +24,18 @@ export const ChatMessage = ({ message, isLastMessage }: ChatMessageProps) => {
   const isUser = message.role === 'user';
   const [showActions, setShowActions] = useState(false);
   const [showQuizExample, setShowQuizExample] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  
+  // Load favorite status on mount
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (isUser) return;
+      const favs = await FavoriteResponsesStorage.getFavoriteResponses();
+      const exists = favs.some(f => f.id === message.id);
+      setIsFavorite(exists);
+    };
+    checkFavorite();
+  }, [message.id, isUser]);
   
   // Check if this is a math question based on the first line
   const isMathQuestion = useMemo(() => {
@@ -141,21 +153,26 @@ export const ChatMessage = ({ message, isLastMessage }: ChatMessageProps) => {
     }
   };
   
-  const handleSaveFavorite = async () => {
+  const toggleFavorite = async () => {
     try {
-      // Find the user's question that preceded this answer
-      const favoriteResponse: FavoriteResponse = {
-        id: message.id,
-        question: 'User Question', // Ideally, find the related question
-        answer: displayContent, // Save the cleaned message
-        timestamp: message.timestamp
-      };
-      
-      await FavoriteResponsesStorage.saveFavoriteResponse(favoriteResponse);
-      Alert.alert('Saved!', 'Response saved to favorites');
+      if (isFavorite) {
+        await FavoriteResponsesStorage.removeFavoriteResponse(message.id);
+        setIsFavorite(false);
+        Alert.alert('Removed', 'Removed from favorites');
+      } else {
+        const favoriteResponse: FavoriteResponse = {
+          id: message.id,
+          question: 'User Question', // TODO: link to actual question if available
+          answer: displayContent,
+          timestamp: message.timestamp,
+        };
+        await FavoriteResponsesStorage.saveFavoriteResponse(favoriteResponse);
+        setIsFavorite(true);
+        Alert.alert('Saved!', 'Response saved to favorites');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to save to favorites');
-      console.error('Failed to save favorite:', error);
+      Alert.alert('Error', 'Failed to update favorites');
+      console.error('toggleFavorite error:', error);
     }
   };
 
@@ -198,14 +215,22 @@ export const ChatMessage = ({ message, isLastMessage }: ChatMessageProps) => {
             })}
           </Text>
           
+          {/* Persistent bookmark toggle */}
+          {!isUser && (
+            <TouchableOpacity style={styles.actionButton} onPress={toggleFavorite}>
+              <Ionicons
+                name={isFavorite ? 'bookmark' : 'bookmark-outline'}
+                size={16}
+                color={isFavorite ? COLORS.primary : COLORS.textLight}
+              />
+            </TouchableOpacity>
+          )}
+          
           {/* Actions for assistant messages only */}
           {!isUser && showActions && (
             <View style={styles.actionsContainer}>
               <TouchableOpacity style={styles.actionButton} onPress={handleCopyText}>
                 <Ionicons name="copy-outline" size={16} color={COLORS.textLight} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={handleSaveFavorite}>
-                <Ionicons name="bookmark-outline" size={16} color={COLORS.textLight} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton} onPress={() => setShowActions(false)}>
                 <Ionicons name="close-outline" size={16} color={COLORS.textLight} />
