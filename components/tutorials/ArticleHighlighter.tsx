@@ -51,6 +51,76 @@ export const ArticleHighlighter: React.FC<ArticleHighlighterProps> = ({
     }
   };
 
+  // Function to render article content with highlights
+  const renderArticleContent = () => {
+    const sections = article.content.split('##');
+    return sections.map((section, sectionIndex) => {
+      if (sectionIndex === 0) {
+        // Title section
+        return (
+          <div key="title" className="mb-6">
+            <h1 className="text-2xl font-bold">{section.trim()}</h1>
+          </div>
+        );
+      }
+
+      // Content sections
+      const [title, ...content] = section.split('\n');
+      const sectionText = content.join('\n').trim();
+
+      return (
+        <div key={sectionIndex} className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">{title.trim()}</h2>
+          <div className="prose max-w-none">
+            {sectionText.split('\n').map((paragraph, pIndex) => {
+              // Check if this paragraph contains any highlights
+              const paragraphHighlights = article.highlights.filter(h => 
+                paragraph.includes(h.text)
+              );
+
+              if (paragraphHighlights.length === 0) {
+                return <p key={pIndex}>{paragraph}</p>;
+              }
+
+              // Split paragraph by highlights and render with highlights
+              let lastIndex = 0;
+              const parts = [];
+
+              paragraphHighlights.forEach(highlight => {
+                const index = paragraph.indexOf(highlight.text, lastIndex);
+                if (index > lastIndex) {
+                  parts.push(paragraph.slice(lastIndex, index));
+                }
+                parts.push(
+                  <span
+                    key={highlight.id}
+                    style={{ backgroundColor: highlight.color }}
+                    className="px-1 rounded relative group"
+                  >
+                    {highlight.text}
+                    <button
+                      onClick={() => onHighlightRemove?.(highlight.id)}
+                      className="absolute -right-6 top-0 opacity-0 group-hover:opacity-100 text-red-500"
+                    >
+                      ×
+                    </button>
+                  </span>
+                );
+                lastIndex = index + highlight.text.length;
+              });
+
+              if (lastIndex < paragraph.length) {
+                parts.push(paragraph.slice(lastIndex));
+              }
+
+              return <p key={pIndex}>{parts}</p>;
+            })}
+          </div>
+        </div>
+      );
+    });
+  };
+
   return (
     <div className="relative">
       {/* Highlight Controls */}
@@ -86,25 +156,7 @@ export const ArticleHighlighter: React.FC<ArticleHighlighterProps> = ({
         className="prose max-w-none"
         onMouseUp={handleTextSelection}
       >
-        {article.highlights.map((highlight) => (
-          <div
-            key={highlight.id}
-            className="relative group"
-          >
-            <span
-              style={{ backgroundColor: highlight.color }}
-              className="px-1 rounded"
-            >
-              {highlight.text}
-            </span>
-            <button
-              onClick={() => onHighlightRemove?.(highlight.id)}
-              className="absolute -right-6 top-0 opacity-0 group-hover:opacity-100 text-red-500"
-            >
-              ×
-            </button>
-          </div>
-        ))}
+        {renderArticleContent()}
       </div>
     </div>
   );

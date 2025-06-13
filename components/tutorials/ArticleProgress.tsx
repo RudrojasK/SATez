@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Article, ArticleProgress as ArticleProgressType } from '../../constants/articles';
 
 interface ArticleProgressProps {
@@ -26,14 +26,34 @@ export const ArticleProgress: React.FC<ArticleProgressProps> = ({
   };
 
   const handleSectionComplete = (section: string) => {
+    const totalSections = article.content.split('##').length - 1;
+    const newSectionsCompleted = article.progress.sectionsCompleted.includes(section)
+      ? article.progress.sectionsCompleted.filter(s => s !== section)
+      : [...article.progress.sectionsCompleted, section];
+
     const newProgress: ArticleProgressType = {
       ...article.progress,
-      sectionsCompleted: [...article.progress.sectionsCompleted, section],
+      sectionsCompleted: newSectionsCompleted,
       timeSpent: article.progress.timeSpent + 1,
-      lastRead: Date.now()
+      lastRead: Date.now(),
+      completed: newSectionsCompleted.length === totalSections
     };
+
     onProgressUpdate?.(newProgress);
   };
+
+  // Update completion status when all sections are done
+  useEffect(() => {
+    const totalSections = article.content.split('##').length - 1;
+    const isCompleted = article.progress.sectionsCompleted.length === totalSections;
+    
+    if (isCompleted && !article.progress.completed) {
+      onProgressUpdate?.({
+        ...article.progress,
+        completed: true
+      });
+    }
+  }, [article.progress.sectionsCompleted]);
 
   return (
     <div className="bg-white p-4 rounded-lg shadow">
