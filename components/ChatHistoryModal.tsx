@@ -1,10 +1,11 @@
 import { useAuth } from '@/app/context/AuthContext';
 import { COLORS, SHADOWS, SIZES } from '@/constants/Colors';
+import { useChatHistory } from '@/hooks/useChatHistory';
 import { Message } from '@/utils/groq';
-import { ChatSession, chatHistoryService } from '@/utils/supabase';
+import type { ChatSession } from '@/utils/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -20,116 +21,47 @@ import {
 interface ChatHistoryModalProps {
   visible: boolean;
   onClose: () => void;
-  onLoadChat: (messages: Message[]) => void;
+  onLoadChat: (messages: Message[], sessionId: string) => void;
 }
 
 export const ChatHistoryModal = ({ visible, onClose, onLoadChat }: ChatHistoryModalProps) => {
   const { user } = useAuth();
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    sessions,
+    isLoading,
+    fetchMessages,
+    renameSession,
+    toggleFavourite,
+    deleteSession,
+  } = useChatHistory({ userId: user?.id ?? null });
+
+  const [search, setSearch] = useState('');
   const [editingSession, setEditingSession] = useState<ChatSession | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   
-  useEffect(() => {
-    if (visible && user) {
-      loadChatSessions();
-    }
-  }, [visible, user]);
-  
-  const loadChatSessions = async () => {
-    if (!user) return;
-    
-    try {
-      setLoading(true);
-      const sessions = await chatHistoryService.getSessions(user.id);
-      setChatSessions(sessions);
-    } catch (error) {
-      console.error('Failed to load chat sessions:', error);
-      Alert.alert('Error', 'Failed to load chat history');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
   const handleLoadChat = async (session: ChatSession) => {
-    try {
-      setLoading(true);
-      const messages = await chatHistoryService.getMessages(session.id);
-      if (messages.length > 0) {
-        onLoadChat(messages);
-        onClose();
-      } else {
-        Alert.alert('Error', 'This chat has no messages');
-      }
-    } catch (error) {
-      console.error('Failed to load chat messages:', error);
-      Alert.alert('Error', 'Failed to load chat');
-    } finally {
-      setLoading(false);
+    const messages = await fetchMessages(session.id);
+    if (messages.length > 0) {
+      onLoadChat(messages, session.id);
+      onClose();
+    } else {
+      Alert.alert('Empty chat', 'This chat has no messages yet.');
     }
   };
   
-  const handleToggleFavorite = async (session: ChatSession) => {
-    try {
-      const updatedFavorite = !session.is_favorite;
-      await chatHistoryService.updateSession(session.id, { is_favorite: updatedFavorite });
-      
-      // Update local state
-      setChatSessions(prev => 
-        prev.map(s => 
-          s.id === session.id ? { ...s, is_favorite: updatedFavorite } : s
-        )
-      );
-    } catch (error) {
-      console.error('Failed to update favorite status:', error);
-      Alert.alert('Error', 'Failed to update favorite status');
-    }
-  };
+  const handleToggleFavorite = (session: ChatSession) => toggleFavourite(session.id);
   
-  const handleStartEdit = (session: ChatSession) => {
-    setEditingSession(session);
-    setEditTitle(session.title);
-  };
-  
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = () => {
     if (!editingSession) return;
-    
-    try {
-      await chatHistoryService.updateSession(editingSession.id, { title: editTitle });
-      
-      // Update local state
-      setChatSessions(prev => 
-        prev.map(s => 
-          s.id === editingSession.id ? { ...s, title: editTitle } : s
-        )
-      );
-      
-      setEditingSession(null);
-      setEditTitle('');
-    } catch (error) {
-      console.error('Failed to update chat title:', error);
-      Alert.alert('Error', 'Failed to update chat title');
-    }
+    renameSession(editingSession.id, editTitle.trim() || 'Untitled Chat');
+    setEditingSession(null);
+    setEditTitle('');
   };
   
-  const handleDeleteChat = async (sessionId: string) => {
-    try {
-      setDeletingId(sessionId);
-      const success = await chatHistoryService.deleteSession(sessionId);
-      
-      if (success) {
-        // Update local state
-        setChatSessions(prev => prev.filter(s => s.id !== sessionId));
-      } else {
-        throw new Error('Failed to delete chat');
-      }
-    } catch (error) {
-      console.error('Failed to delete chat:', error);
-      Alert.alert('Error', 'Failed to delete chat');
-    } finally {
-      setDeletingId(null);
-    }
+  const handleDeleteChat = (sessionId: string) => {
+    setDeletingId(sessionId);
+    deleteSession(sessionId).finally(() => setDeletingId(null));
   };
   
   const confirmDelete = (session: ChatSession) => {
@@ -138,10 +70,15 @@ export const ChatHistoryModal = ({ visible, onClose, onLoadChat }: ChatHistoryMo
       `Are you sure you want to delete "${session.title}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => handleDeleteChat(session.id) }
-      ]
+        { text: 'Delete', style: 'destructive', onPress: () => handleDeleteChat(session.id) },
+      ],
     );
   };
+  
+  const filteredSessions = sessions.filter(s =>
+    s.title.toLowerCase().includes(search.toLowerCase()) ||
+    (s.is_favorite && 'favorite'.includes(search.toLowerCase()))
+  );
   
   const renderChatSessionItem = ({ item }: { item: ChatSession }) => (
     <View style={styles.chatItem}>
@@ -202,7 +139,7 @@ export const ChatHistoryModal = ({ visible, onClose, onLoadChat }: ChatHistoryMo
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={() => handleStartEdit(item)}
+              onPress={() => setEditingSession(item)}
             >
               <Ionicons name="pencil-outline" size={20} color={COLORS.textLight} />
             </TouchableOpacity>
@@ -236,7 +173,7 @@ export const ChatHistoryModal = ({ visible, onClose, onLoadChat }: ChatHistoryMo
   const renderHeader = () => (
     <View style={styles.listHeader}>
       <Text style={styles.listHeaderTitle}>Your Saved Chats</Text>
-      {chatSessions.length > 0 && (
+      {sessions.length > 0 && (
         <Text style={styles.listHeaderSubtitle}>
           Tap on a chat to continue the conversation
         </Text>
@@ -259,21 +196,30 @@ export const ChatHistoryModal = ({ visible, onClose, onLoadChat }: ChatHistoryMo
           </TouchableOpacity>
         </View>
         
-        {loading && chatSessions.length === 0 ? (
+        {isLoading && filteredSessions.length === 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={styles.loadingText}>Loading your chat history...</Text>
           </View>
         ) : (
-          <FlatList
-            data={chatSessions}
-            renderItem={renderChatSessionItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={renderEmptyState}
-            ListHeaderComponent={renderHeader}
-          />
+          <>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search chats..."
+              placeholderTextColor={COLORS.textLight}
+              value={search}
+              onChangeText={setSearch}
+            />
+            <FlatList
+              data={filteredSessions}
+              renderItem={renderChatSessionItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={renderEmptyState}
+              ListHeaderComponent={renderHeader}
+            />
+          </>
         )}
       </View>
     </Modal>
@@ -431,5 +377,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textLight,
     marginTop: 16,
+  },
+  searchInput: {
+    backgroundColor: COLORS.card,
+    padding: 10,
+    borderRadius: SIZES.radius,
+    marginHorizontal: SIZES.padding,
+    marginBottom: 12,
+    color: COLORS.text,
   },
 }); 

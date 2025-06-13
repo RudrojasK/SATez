@@ -6,7 +6,7 @@ import { Message } from './groq';
 
 console.log('Checking Environment Variables in supabase.ts:');
 console.log('EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
-console.log('EXPO_PUBLIC_SUPABASE_ANON_KEY:', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY);
+console.log('EXPO_PUBLIC_SUPABASE_ANON_KEY:', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not set');
 
 // Create a custom storage implementation for web
 const createCustomStorage = () => {
@@ -51,16 +51,33 @@ const createCustomStorage = () => {
   return AsyncStorage;
 };
 
-// For testing purposes, use these default values if environment variables are not available
-// In production, these should be set in your environment
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://fmwocpzozkoifjdnohol.supabase.co";
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtd29jcHpvemtvaWZqZG5vaG9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTgzMjQ0MjYsImV4cCI6MjAxMzkwMDQyNn0.q99WUTMM0fR8dQ1X1QaD6hVFoZf1M5qGsCvlwK1K9TA";
+// Get environment variables
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
+// Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    'Supabase URL or Anon Key is missing. ',
-    'Please check your configuration.'
-  );
+  console.error('❌ Supabase configuration missing!');
+  console.error('Please create a .env file in your project root with:');
+  console.error('EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url');
+  console.error('EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key');
+  console.error('');
+  console.error('You can find these values in your Supabase dashboard:');
+  console.error('1. Go to https://supabase.com/dashboard');
+  console.error('2. Select your project');
+  console.error('3. Go to Settings > API');
+  console.error('4. Copy the Project URL and anon/public key');
+  
+  throw new Error('Supabase configuration is missing. Please check your environment variables.');
+}
+
+// Validate URL format
+if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
+  console.error('❌ Invalid Supabase URL format!');
+  console.error('Expected format: https://your-project-ref.supabase.co');
+  console.error('Current value:', supabaseUrl);
+  
+  throw new Error('Invalid Supabase URL format. Please check your EXPO_PUBLIC_SUPABASE_URL.');
 }
 
 // Get the appropriate storage handler based on platform
@@ -73,6 +90,23 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false, // Important for React Native
   },
+});
+
+// Test the connection
+supabase.auth.getSession().then(({ data, error }) => {
+  if (error) {
+    console.error('❌ Supabase connection test failed:', error.message);
+    if (error.message.includes('JSON Parse error')) {
+      console.error('This usually means:');
+      console.error('1. Your Supabase URL is incorrect');
+      console.error('2. Your Supabase project is not accessible');
+      console.error('3. Network connectivity issues');
+    }
+  } else {
+    console.log('✅ Supabase connection successful');
+  }
+}).catch((error) => {
+  console.error('❌ Supabase connection error:', error);
 });
 
 // Tells Supabase Auth to stop sending page rendering new Auth tokens
@@ -356,22 +390,40 @@ export const chatHistoryService = {
   // Add messages to a chat session
   async addMessages(sessionId: string, messages: Message[]): Promise<boolean> {
     try {
-      // Map app messages to database format
-      const dbMessages = messages.map((msg, index) => ({
+      // Get the current number of messages stored for this session
+      const { count: existingCount, error: countError } = await supabase
+        .from('chat_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('session_id', sessionId);
+
+      if (countError) throw countError;
+
+      const startIndex = existingCount || 0;
+
+      // Only insert messages that have not been saved yet
+      const newMessages = messages.slice(startIndex);
+
+      if (newMessages.length === 0) {
+        // Nothing new to save
+        await this.updateSession(sessionId, {});
+        return true;
+      }
+
+      const dbMessages = newMessages.map((msg, index) => ({
         session_id: sessionId,
         role: msg.role,
         content: msg.content,
         image_url: msg.imageUri,
         timestamp: new Date(msg.timestamp).toISOString(),
-        sequence_order: index
+        sequence_order: startIndex + index
       }));
-      
+
       const { error } = await supabase
         .from('chat_messages')
         .insert(dbMessages);
-      
+
       if (error) throw error;
-      
+       
       // Update the session's updated_at timestamp
       await this.updateSession(sessionId, {});
       

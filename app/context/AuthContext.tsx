@@ -147,17 +147,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
     
-    if (error) {
-      console.error('Sign in error:', error);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error('Sign in error:', error);
+        setIsLoading(false);
+        
+        // Provide more helpful error messages
+        if (error.message.includes('JSON Parse error')) {
+          throw new Error('Connection error: Please check your internet connection and try again. If the problem persists, the service may be temporarily unavailable.');
+        } else if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password. Please check your credentials and try again.');
+        } else if (error.message.includes('Email not confirmed')) {
+          throw new Error('Please check your email and click the confirmation link before signing in.');
+        } else {
+          throw new Error(error.message || 'Sign in failed. Please try again.');
+        }
+      }
+      
+      // onAuthStateChange will handle setting user and session state
+    } catch (error: any) {
       setIsLoading(false);
       throw error;
     }
-    // onAuthStateChange will handle setting user and session state
   };
 
   const signUp = async (email: string, password: string, name: string, metadata?: UserMetadata) => {

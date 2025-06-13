@@ -262,8 +262,9 @@ export default function TutorScreen() {
     setShowChatHistory(true);
   };
   
-  const handleLoadChat = (loadedMessages: Message[]) => {
+  const handleLoadChat = (loadedMessages: Message[], sessionId: string) => {
     setMessages(loadedMessages);
+    setCurrentSessionId(sessionId);
     // If the first message is not our standard welcome message, add it
     if (loadedMessages.length > 0 && loadedMessages[0].role !== 'assistant') {
       setMessages([...createInitialMessages(), ...loadedMessages]);
