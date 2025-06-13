@@ -1,6 +1,7 @@
 import { Button } from '@/components/Button';
 import { COLORS, SHADOWS, SIZES } from '@/constants/Colors';
-import { practiceTests, quizQuestions } from '@/constants/mockData';
+import { quizQuestions as fallbackQuestions, practiceTests } from '@/constants/mockData';
+import { getRandomQuestions, Section as SatSection } from '@/utils/openSat';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -12,29 +13,66 @@ export default function QuizScreen() {
   const router = useRouter();
   const { addTestQuestionResult } = usePracticeData();
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState(60); // 60 seconds per question
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState(60);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [questions, setQuestions] = useState<any[]>([]);
   
   // Find the test details
   const test = practiceTests.find(t => t.id === id);
   
-  // Calculate progress percentage
-  const progress = Math.round(((currentQuestion + 1) / quizQuestions.length) * 100);
+  // Load questions once on mount based on id param
+  useEffect(() => {
+    if (!id) {
+      setQuestions(fallbackQuestions);
+      return;
+    }
+
+    // Expecting id like "opensat-math" or fallback to mock
+    if (typeof id === 'string' && id.startsWith('opensat-')) {
+      const tokens = (id as string).split('-');
+      const section = tokens[1] as SatSection;
+      const domain = tokens.slice(2).join('-');
+      const fetched = getRandomQuestions(section, domain ? 3 : 10, domain || undefined);
+      if (fetched.length) {
+        // convert to generic format with options array and correctAnswer index
+        const mapped = fetched.map(q => {
+          const optionKeys = Object.keys(q.question.choices);
+          const options = optionKeys.map(k => q.question.choices[k]);
+          const correctIndex = optionKeys.indexOf(q.question.correct_answer);
+          return {
+            id: q.id,
+            question: q.question.question,
+            options,
+            correctAnswer: correctIndex,
+            explanation: q.question.explanation,
+            difficulty: q.difficulty,
+          };
+        });
+        setQuestions(mapped);
+        return;
+      }
+    }
+    // default
+    setQuestions(fallbackQuestions);
+  }, [id]);
   
-  // Handle option selection
-  const handleOptionSelect = (optionIndex: number) => {
-    setSelectedOption(optionIndex);
+  // Calculate progress percentage
+  const progress = questions.length ? Math.round(((currentQuestion + 1) / questions.length) * 100) : 0;
+  
+  // Option selection stores letter index or string index
+  const handleOptionSelect = (index: number) => {
+    setSelectedOption(index.toString());
   };
   
   // Handle next question
   const handleNextQuestion = async () => {
     // Save the current question result if an option was selected
     if (selectedOption !== null) {
-      const question = quizQuestions[currentQuestion];
+      const question = questions[currentQuestion];
       const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-      const isCorrect = selectedOption === question.correctAnswer;
-      const selectedOptionLetter = String.fromCharCode(65 + selectedOption); // Convert 0,1,2,3 to A,B,C,D
+      const isCorrect = selectedOption === question.correctAnswer.toString();
+      const selectedOptionLetter = String.fromCharCode(65 + parseInt(selectedOption)); // Convert 0,1,2,3 to A,B,C,D
       const correctOptionLetter = String.fromCharCode(65 + question.correctAnswer);
       
       console.log('Saving question result:', {
@@ -67,7 +105,7 @@ export default function QuizScreen() {
       }
     }
     
-    if (currentQuestion < quizQuestions.length - 1) {
+    if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
       setSelectedOption(null);
       setQuestionStartTime(Date.now()); // Reset start time for next question
@@ -109,8 +147,11 @@ export default function QuizScreen() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
   
-  // Current question data
-  const question = quizQuestions[currentQuestion];
+  if (!questions.length) {
+    return (<SafeAreaView><Text>Loading questions...</Text></SafeAreaView>);
+  }
+  
+  const question = questions[currentQuestion];
   
   return (
     <>
@@ -124,7 +165,7 @@ export default function QuizScreen() {
         <View style={styles.header}>
           <View style={styles.progressInfo}>
             <Text style={styles.questionCounter}>
-              Question {currentQuestion + 1} of {quizQuestions.length}
+              Question {currentQuestion + 1} of {questions.length}
             </Text>
             <View style={styles.progressBarContainer}>
               <View style={[styles.progressBar, { width: `${progress}%` }]} />
@@ -151,33 +192,33 @@ export default function QuizScreen() {
           </View>
           
           <View style={styles.optionsContainer}>
-            {question.options.map((option, index) => (
+            {question.options.map((option: string, index: number) => (
               <TouchableOpacity
                 key={index}
                 style={[
                   styles.optionButton,
-                  selectedOption === index && styles.selectedOption,
+                  selectedOption === index.toString() && styles.selectedOption,
                 ]}
                 onPress={() => handleOptionSelect(index)}
                 activeOpacity={0.7}
                 accessibilityRole="radio"
-                accessibilityState={{ checked: selectedOption === index }}
+                accessibilityState={{ checked: selectedOption === index.toString() }}
                 accessibilityLabel={`Option ${String.fromCharCode(65 + index)}: ${option}`}
               >
                 <View style={[
                   styles.optionLabelContainer,
-                  selectedOption === index && styles.selectedOptionLabel
+                  selectedOption === index.toString() && styles.selectedOptionLabel
                 ]}>
                   <Text style={[
                     styles.optionLabel,
-                    selectedOption === index && styles.selectedOptionLabelText
+                    selectedOption === index.toString() && styles.selectedOptionLabelText
                   ]}>
                     {String.fromCharCode(65 + index)}
                   </Text>
                 </View>
                 <Text style={[
                   styles.optionText,
-                  selectedOption === index && styles.selectedOptionText
+                  selectedOption === index.toString() && styles.selectedOptionText
                 ]}>
                   {option}
                 </Text>
@@ -188,7 +229,7 @@ export default function QuizScreen() {
         
         <View style={styles.footer}>
           <Button
-            title={currentQuestion < quizQuestions.length - 1 ? "Next Question" : "Finish Quiz"}
+            title={currentQuestion < questions.length - 1 ? "Next Question" : "Finish Quiz"}
             onPress={handleNextQuestion}
             disabled={selectedOption === null}
             fullWidth

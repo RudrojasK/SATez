@@ -82,7 +82,7 @@ const QuizzesView = () => {
   // Effect to handle deep links and tab changes from parameters
   useEffect(() => {
     if (typeof params.tab === 'string' && ['Math', 'Reading', 'Writing'].includes(params.tab)) {
-      setActiveQuizTab(params.tab as QuizTab);
+    setActiveQuizTab(params.tab as QuizTab);
     }
   }, [params.tab]);
 
@@ -107,7 +107,7 @@ const QuizzesView = () => {
                 <TouchableOpacity 
                   key={item} 
                   style={styles.quizItem} 
-                  onPress={() => router.push(`/(tabs)/quiz?id=${item.replace(/\s+/g, '-').toLowerCase()}`)}
+                  onPress={() => router.push(`/(tabs)/quiz?id=opensat-${activeQuizTab.toLowerCase()}-${category.title.toLowerCase()}`)}
                 >
                   <Ionicons name="document-text-outline" size={20} color="#555" style={{marginRight: 8}}/>
                   <Text style={styles.quizItemText}>{item}</Text>

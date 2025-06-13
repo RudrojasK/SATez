@@ -1,0 +1,44 @@
+{
+  "math": [
+    {
+      "id": "281a4f3b",
+      "domain": "Advanced Math",
+      "visuals": {
+        "type": null,
+        "svg_content": null
+      },
+      "question": {
+        "question": "A certain college had 3,000 students enrolled in 2015. The college predicts that after 2015, the number of students enrolled each year will be 2% less than the number of students enrolled the year before. Which of the following functions models the relationship between the number of students enrolled, f(x), and the number of years after 2015, x?",
+        "choices": {
+          "A": "f(x) = 3,000(0.02)^x",
+          "B": "f(x) = 0.98(3,000)^x",
+          "C": "f(x) = 3,000(0.002)^x",
+          "D": "f(x) = 3,000(0.98)^x"
+        },
+        "explanation": "Because the change in the number of students decreases by the same percentage each year, the relationship is a decreasing exponential function f(x) = a(1 - r)^x. Here a = 3000 and r = 0.02 giving f(x) = 3000(0.98)^x.",
+        "correct_answer": "D"
+      },
+      "difficulty": "Medium"
+    },
+    {
+      "id": "b81173a5",
+      "domain": "Advanced Math",
+      "visuals": {
+        "type": null,
+        "svg_content": null
+      },
+      "question": {
+        "question": "The graph of the function f(x)= x^2 + 2x + 3 intersects the x-axis at two points. What is the sum of the x-coordinates of these two points? ",
+        "choices": {
+          "A": "-2",
+          "B": "0",
+          "C": "2",
+          "D": "4"
+        },
+        "explanation": "Sum of roots for ax^2+bx+c is -b/a. Here a=1, b=2, so sum = -2.",
+        "correct_answer": "A"
+      },
+      "difficulty": "Hard"
+    }
+  ]
+} 
