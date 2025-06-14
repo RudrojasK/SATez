@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Dimensions,
     Keyboard,
@@ -16,6 +17,7 @@ import {
     TouchableWithoutFeedback,
     View,
 } from 'react-native';
+import { getGoogleAuthSetupMessage, isGoogleAuthConfigured } from '../../utils/googleAuth';
 import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
@@ -35,7 +37,8 @@ export default function SignupScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
+  const isGoogleConfigured = isGoogleAuthConfigured();
 
   const validateStep1 = () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -93,6 +96,31 @@ export default function SignupScreen() {
       // The AuthContext will handle navigation after signup
     } catch (error: any) {
       Alert.alert('Signup Failed', error.message || 'Failed to create account');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    if (!isGoogleConfigured) {
+      Alert.alert(
+        'Google Sign-Up Not Available',
+        getGoogleAuthSetupMessage() || 'Google Sign-Up is not configured.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      await signInWithGoogle();
+      // Navigation will be handled by the auth state change
+    } catch (error: any) {
+      Alert.alert(
+        'Google Sign-Up Failed',
+        error.message || 'Failed to sign up with Google. Please try again.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsLoading(false);
     }
@@ -339,9 +367,31 @@ export default function SignupScreen() {
                   <View style={styles.dividerLine} />
                 </View>
 
-                <TouchableOpacity style={styles.socialButton}>
-                  <Ionicons name="logo-google" size={20} color="#DB4437" />
-                  <Text style={styles.socialButtonText}>Continue with Google</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.socialButton, 
+                    (isLoading || !isGoogleConfigured) && styles.socialButtonDisabled
+                  ]}
+                  onPress={handleGoogleSignUp}
+                  disabled={isLoading || !isGoogleConfigured}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="#DB4437" />
+                  ) : (
+                    <>
+                      <Ionicons 
+                        name="logo-google" 
+                        size={20} 
+                        color={isGoogleConfigured ? "#DB4437" : "#999"} 
+                      />
+                      <Text style={[
+                        styles.socialButtonText,
+                        !isGoogleConfigured && styles.disabledText
+                      ]}>
+                        Continue with Google
+                      </Text>
+                    </>
+                  )}
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.socialButton}>
@@ -574,6 +624,9 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     backgroundColor: '#fff',
   },
+  socialButtonDisabled: {
+    backgroundColor: '#a0c0e4',
+  },
   socialButtonText: {
     fontSize: 16,
     color: '#212529',
@@ -599,5 +652,8 @@ const styles = StyleSheet.create({
     color: '#6c757d',
     marginTop: 4,
     fontStyle: 'italic',
+  },
+  disabledText: {
+    color: '#999',
   },
 }); 

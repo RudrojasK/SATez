@@ -1,5 +1,6 @@
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { signInWithGoogle as googleAuthSignIn } from '../../utils/googleAuth';
 import { supabase } from '../../utils/supabase';
 
 interface User {
@@ -34,6 +35,7 @@ interface AuthContextType {
   isNewUser: boolean;
   setIsNewUser: (value: boolean) => void;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string, name: string, metadata?: UserMetadata) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -293,6 +295,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      await googleAuthSignIn();
+      // The auth state change listener will handle setting user and session
+    } catch (error: any) {
+      console.error('Error signing in with Google:', error);
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     supabaseUser,
@@ -301,6 +315,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isNewUser,
     setIsNewUser,
     signIn,
+    signInWithGoogle: handleGoogleSignIn,
     signUp,
     signOut,
     refreshUser,

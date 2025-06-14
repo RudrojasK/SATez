@@ -429,6 +429,49 @@ The study timer feature requires a database table to store session data. To set 
 
 After setting up the table, the study timer will automatically sync data to the backend and users can access their study history across devices.
 
+## Google OAuth Setup
+
+SATez supports Google Sign-In/Sign-Up for a seamless authentication experience. To enable this feature:
+
+### Quick Setup
+
+1. **Google Cloud Console Setup**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing
+   - Enable Google Sign-In API
+   - Create OAuth 2.0 credentials (Web, iOS, Android)
+
+2. **Supabase Configuration**:
+   - Enable Google provider in Authentication settings
+   - Add your Google OAuth credentials
+   - Configure redirect URLs
+
+3. **Environment Variables**:
+   Add to your `.env` file:
+   ```env
+   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your_web_client_id.googleusercontent.com
+   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your_ios_client_id.googleusercontent.com
+   EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your_android_client_id.googleusercontent.com
+   ```
+
+4. **Test the Integration**:
+   - Start the development server: `npm start`
+   - Try "Continue with Google" on login/signup screens
+
+### Detailed Setup Guide
+
+For complete step-by-step instructions, see [GOOGLE_OAUTH_SETUP.md](GOOGLE_OAUTH_SETUP.md).
+
+### Features Enabled
+
+- ✅ **One-Click Authentication** - Users can sign in/up with their Google account
+- ✅ **Profile Auto-Population** - Name and email are automatically filled from Google
+- ✅ **Secure Authentication** - OAuth 2.0 with Supabase Auth integration
+- ✅ **Cross-Platform Support** - Works on iOS, Android, and Web
+- ✅ **Seamless UX** - Native Google sign-in experience
+
+**Note**: Google OAuth requires proper configuration in both Google Cloud Console and Supabase. The feature will show a disabled state until properly configured.
+
 ---
 
 <div align="center">
