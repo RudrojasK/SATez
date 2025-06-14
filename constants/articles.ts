@@ -7,11 +7,7 @@ export interface Article {
   // Full content of the article in Markdown format
   content: string; 
   // Estimated reading time in minutes
-  readingTime: number;
-  // Difficulty level
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  // Tags for better organization
-  tags: string[];
+
 }
 
 export const articles: Article[] = [
@@ -22,7 +18,33 @@ export const articles: Article[] = [
     difficulty: 'Beginner',
     tags: ['comprehension', 'strategies', 'passages'],
     summary: 'Learn how to dissect passages, identify main ideas, and tackle evidence-based questions effectively.',
-    readingTime: 8,
+    readingTime: 5,
+    highlights: [
+      {
+        id: 'h1',
+        text: 'Active Reading: Annotate as You Go',
+        type: 'main-idea',
+        color: '#FFD700'
+      },
+      {
+        id: 'h2',
+        text: 'Use different symbols for different elements',
+        type: 'tip',
+        color: '#90EE90'
+      },
+      {
+        id: 'h3',
+        text: 'Don\'t confuse a supporting detail with the main idea',
+        type: 'key-point',
+        color: '#FFB6C1'
+      }
+    ],
+    progress: {
+      lastRead: Date.now(),
+      completed: false,
+      timeSpent: 0,
+      sectionsCompleted: []
+    },
     content: `
 # 5 Key Strategies for SAT Reading Comprehension
 
@@ -31,8 +53,15 @@ The SAT Reading section tests your ability to understand complex passages and an
 ## 1. Active Reading: Annotate as You Go
 Don't just passively read the passage. Engage with the text by underlining key phrases, circling names and dates, and jotting down the main idea of each paragraph in the margin. This keeps you focused and makes it easier to find answers later.
 
+**Pro Tip:** Use different symbols for different elements:
+- ⭐ for main ideas
+- 🔍 for key details
+- ❓ for confusing parts
+
 ## 2. Identify the Main Idea First
 Before diving into the questions, take a moment to summarize the central theme or purpose of the passage. Ask yourself: "What is the author's primary point?" Having a clear grasp of the main idea will help you answer broader questions and put specific details into context.
+
+**Common Pitfall:** Don't confuse a supporting detail with the main idea. The main idea should be broad enough to encompass all paragraphs.
 
 ## 3. Understand Question Types
 The SAT uses predictable question types. They can be broadly categorized into:
@@ -45,6 +74,12 @@ Many questions come in pairs. The first question asks about the passage, and the
 
 ## 5. Don't Let Outside Knowledge Interfere
 The SAT is a test of what the passage says, not what you know about a topic. All answers can be found directly in the text or must be logically inferred from it. Avoid making assumptions or using information that isn't provided.
+
+## Time Management Tips
+- Spend about 3 minutes reading each passage
+- Allocate 1 minute per question
+- Leave 2-3 minutes at the end to review marked questions
+- If stuck, mark the question and move on
     `,
   },
   {
@@ -54,7 +89,33 @@ The SAT is a test of what the passage says, not what you know about a topic. All
     difficulty: 'Intermediate',
     tags: ['algebra', 'geometry', 'data analysis'],
     summary: 'A breakdown of the core concepts, from "Heart of Algebra" to "Passport to Advanced Math," with tips for problem-solving.',
-    readingTime: 12,
+    readingTime: 6,
+    highlights: [
+      {
+        id: 'h1',
+        text: 'Heart of Algebra (Linear Equations)',
+        type: 'main-idea',
+        color: '#FFD700'
+      },
+      {
+        id: 'h2',
+        text: 'Pay close attention to the wording',
+        type: 'tip',
+        color: '#90EE90'
+      },
+      {
+        id: 'h3',
+        text: 'Use the Formula Sheet',
+        type: 'key-point',
+        color: '#FFB6C1'
+      }
+    ],
+    progress: {
+      lastRead: Date.now(),
+      completed: false,
+      timeSpent: 0,
+      sectionsCompleted: []
+    },
     content: `
 # Mastering the SAT Math Section
 
@@ -68,7 +129,10 @@ This is the largest part of the test. You'll need to be an expert in:
 - Building linear functions from word problems.
 - Understanding the relationship between linear equations and their graphs.
 
-**Tip:** Pay close attention to the wording. "At least" means \`≥\`, and "no more than" means \`≤\`.
+**Pro Tips:**
+- Pay close attention to the wording. "At least" means \`≥\`, and "no more than" means \`≤\`.
+- For word problems, write out the equation before solving
+- Check your answer by plugging it back into the original equation
 
 ### 2. Problem Solving and Data Analysis (Ratios, Proportions, Percentages)
 This area tests your quantitative literacy. Be prepared for:
@@ -77,7 +141,10 @@ This area tests your quantitative literacy. Be prepared for:
 - Interpreting data from scatterplots, graphs, and tables.
 - Calculating mean, median, mode, and standard deviation.
 
-**Tip:** When dealing with graphs, always read the title, axis labels, and units before trying to interpret the data.
+**Pro Tips:**
+- When dealing with graphs, always read the title, axis labels, and units before trying to interpret the data
+- For percentage problems, remember: part/whole × 100 = percentage
+- For ratios, keep units consistent
 
 ### 3. Passport to Advanced Math (Complex Equations)
 This section features the kind of math that will be essential for STEM majors. It includes:
@@ -85,12 +152,26 @@ This section features the kind of math that will be essential for STEM majors. I
 - Understanding polynomial functions and their graphs.
 - Solving problems using function notation.
 
-**Tip:** Practice factoring quadratic equations quickly and accurately. Recognizing patterns like \`(x+y)² = x² + 2xy + y²\` will save you valuable time.
+**Pro Tips:**
+- Practice factoring quadratic equations quickly and accurately
+- Recognizing patterns like \`(x+y)² = x² + 2xy + y²\` will save you valuable time
+- For function notation, remember that f(x) means "the value of the function at x"
 
 ## General Strategies
 - **Plug in Numbers:** For variables in the question and answer choices, sometimes picking a simple number (like 2 or 10) and testing it can be faster than solving the algebra.
 - **Use the Formula Sheet:** You are given a reference sheet with common geometry formulas. Know what's on it so you don't waste time trying to memorize them.
 - **Pace Yourself:** The questions generally increase in difficulty. Don't get bogged down on a hard question early on. Answer what you know first, and come back to the challenging ones later.
+
+## Time Management
+- No-Calculator Section (25 minutes):
+  - 5 minutes for first 5 questions
+  - 10 minutes for middle 10 questions
+  - 10 minutes for last 5 questions
+
+- Calculator Section (55 minutes):
+  - 15 minutes for first 15 questions
+  - 25 minutes for middle 20 questions
+  - 15 minutes for last 5 questions
     `,
   },
   {
