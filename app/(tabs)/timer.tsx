@@ -1,8 +1,10 @@
+import { useAuth } from '@/app/context/AuthContext';
 import { COLORS, SHADOWS, SIZES } from '@/constants/Colors';
+import { studySessionsService } from '@/utils/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     FlatList,
     Modal,
@@ -26,9 +28,8 @@ interface StudySession {
 
 type TimerState = 'stopped' | 'running' | 'paused';
 
-const STORAGE_KEY = 'satez:study_sessions';
-
 export default function TimerScreen() {
+  const { user } = useAuth();
   const [timerState, setTimerState] = useState<TimerState>('stopped');
   const [elapsedTime, setElapsedTime] = useState(0); // in seconds
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -38,11 +39,14 @@ export default function TimerScreen() {
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [showLogs, setShowLogs] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Load sessions on mount
   useEffect(() => {
-    loadSessions();
-  }, []);
+    if (user?.id) {
+      loadSessions();
+    }
+  }, [user?.id]);
 
   // Timer effect
   useEffect(() => {
@@ -61,22 +65,60 @@ export default function TimerScreen() {
   }, [timerState, startTime, pausedTime]);
 
   const loadSessions = async () => {
+    if (!user?.id) return;
+    
+    setLoading(true);
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setSessions(JSON.parse(stored));
-      }
+      const dbSessions = await studySessionsService.getSessions(user.id);
+      // Convert database sessions to app format
+      const appSessions: StudySession[] = dbSessions.map(session => ({
+        id: session.id,
+        startTime: new Date(session.start_time).getTime(),
+        endTime: new Date(session.end_time).getTime(),
+        duration: session.duration,
+        subject: session.subject,
+        notes: session.notes,
+        date: new Date(session.created_at).toLocaleDateString(),
+      }));
+      setSessions(appSessions);
     } catch (error) {
       console.error('Failed to load study sessions:', error);
+      Alert.alert('Error', 'Failed to load study sessions');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const saveSessions = async (newSessions: StudySession[]) => {
+  const saveSession = async (sessionData: {
+    startTime: number;
+    endTime: number;
+    duration: number;
+    subject: string;
+    notes: string;
+  }) => {
+    if (!user?.id) return null;
+    
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newSessions));
-      setSessions(newSessions);
+      const savedSession = await studySessionsService.saveSession(user.id, sessionData);
+      if (savedSession) {
+        // Convert to app format and add to local state
+        const appSession: StudySession = {
+          id: savedSession.id,
+          startTime: new Date(savedSession.start_time).getTime(),
+          endTime: new Date(savedSession.end_time).getTime(),
+          duration: savedSession.duration,
+          subject: savedSession.subject,
+          notes: savedSession.notes,
+          date: new Date(savedSession.created_at).toLocaleDateString(),
+        };
+        setSessions(prev => [appSession, ...prev]);
+        return appSession;
+      }
+      return null;
     } catch (error) {
       console.error('Failed to save study sessions:', error);
+      Alert.alert('Error', 'Failed to save study session');
+      return null;
     }
   };
 
@@ -98,27 +140,25 @@ export default function TimerScreen() {
     }
   };
 
-  const stopTimer = () => {
+  const stopTimer = async () => {
     if (timerState !== 'stopped' && elapsedTime > 0) {
-      // Save session
-      const session: StudySession = {
-        id: Date.now().toString(),
+      const sessionData = {
         startTime: startTime! - (pausedTime * 1000),
         endTime: Date.now(),
         duration: elapsedTime,
         subject: subject.trim() || 'General Study',
         notes: notes.trim(),
-        date: new Date().toLocaleDateString(),
       };
       
-      const newSessions = [session, ...sessions];
-      saveSessions(newSessions);
+      const savedSession = await saveSession(sessionData);
       
-      Alert.alert(
-        'Session Saved!',
-        `Study session of ${formatTime(elapsedTime)} has been logged.`,
-        [{ text: 'OK' }]
-      );
+      if (savedSession) {
+        Alert.alert(
+          'Session Saved!',
+          `Study session of ${formatTime(elapsedTime)} has been logged.`,
+          [{ text: 'OK' }]
+        );
+      }
     }
     
     setTimerState('stopped');
@@ -149,9 +189,18 @@ export default function TimerScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            const newSessions = sessions.filter(s => s.id !== sessionId);
-            saveSessions(newSessions);
+          onPress: async () => {
+            try {
+              const success = await studySessionsService.deleteSession(sessionId);
+              if (success) {
+                setSessions(prev => prev.filter(s => s.id !== sessionId));
+              } else {
+                Alert.alert('Error', 'Failed to delete study session');
+              }
+            } catch (error) {
+              console.error('Error deleting session:', error);
+              Alert.alert('Error', 'Failed to delete study session');
+            }
           },
         },
       ]
@@ -162,6 +211,18 @@ export default function TimerScreen() {
     const total = sessions.reduce((sum, session) => sum + session.duration, 0);
     return formatTime(total);
   };
+
+  // Show loading or login required state
+  if (!user?.id) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.emptyState}>
+          <Ionicons name="person-outline" size={48} color={COLORS.textLight} />
+          <Text style={styles.emptyText}>Please log in to use the study timer</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const renderSession = ({ item }: { item: StudySession }) => (
     <View style={styles.sessionItem}>
@@ -283,11 +344,18 @@ export default function TimerScreen() {
           </View>
           
           {sessions.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="time-outline" size={48} color={COLORS.textLight} />
-              <Text style={styles.emptyText}>No study sessions yet</Text>
-              <Text style={styles.emptySubtext}>Start your first study session!</Text>
-            </View>
+            loading ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={styles.emptyText}>Loading study sessions...</Text>
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="time-outline" size={48} color={COLORS.textLight} />
+                <Text style={styles.emptyText}>No study sessions yet</Text>
+                <Text style={styles.emptySubtext}>Start your first study session!</Text>
+              </View>
+            )
           ) : (
             <FlatList
               data={sessions}

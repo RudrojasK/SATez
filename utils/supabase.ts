@@ -485,3 +485,114 @@ export const chatHistoryService = {
     }
   }
 };
+
+// Study sessions service for Supabase
+export interface StudySessionDB {
+  id: string;
+  user_id: string;
+  start_time: string;
+  end_time: string;
+  duration: number; // in seconds
+  subject: string;
+  notes: string;
+  created_at: string;
+}
+
+export const studySessionsService = {
+  // Save a study session
+  async saveSession(userId: string, sessionData: {
+    startTime: number;
+    endTime: number;
+    duration: number;
+    subject: string;
+    notes: string;
+  }): Promise<StudySessionDB | null> {
+    try {
+      const { data, error } = await supabase
+        .from('study_sessions')
+        .insert({
+          user_id: userId,
+          start_time: new Date(sessionData.startTime).toISOString(),
+          end_time: new Date(sessionData.endTime).toISOString(),
+          duration: sessionData.duration,
+          subject: sessionData.subject,
+          notes: sessionData.notes,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as StudySessionDB;
+    } catch (error) {
+      console.error('Error saving study session:', error);
+      return null;
+    }
+  },
+  
+  // Get all study sessions for a user
+  async getSessions(userId: string): Promise<StudySessionDB[]> {
+    try {
+      const { data, error } = await supabase
+        .from('study_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as StudySessionDB[];
+    } catch (error) {
+      console.error('Error getting study sessions:', error);
+      return [];
+    }
+  },
+  
+  // Delete a study session
+  async deleteSession(sessionId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('study_sessions')
+        .delete()
+        .eq('id', sessionId);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting study session:', error);
+      return false;
+    }
+  },
+  
+  // Get study statistics for a user
+  async getStudyStats(userId: string): Promise<{
+    totalSessions: number;
+    totalStudyTime: number;
+    todaySessions: number;
+    todayStudyTime: number;
+    averageSessionLength: number;
+  } | null> {
+    try {
+      const sessions = await this.getSessions(userId);
+      const today = new Date().toDateString();
+      
+      const todaySessions = sessions.filter(s => 
+        new Date(s.created_at).toDateString() === today
+      );
+      
+      const totalStudyTime = sessions.reduce((sum, s) => sum + s.duration, 0);
+      const todayStudyTime = todaySessions.reduce((sum, s) => sum + s.duration, 0);
+      const averageSessionLength = sessions.length > 0 ? totalStudyTime / sessions.length : 0;
+      
+      return {
+        totalSessions: sessions.length,
+        totalStudyTime,
+        todaySessions: todaySessions.length,
+        todayStudyTime,
+        averageSessionLength
+      };
+    } catch (error) {
+      console.error('Error getting study stats:', error);
+      return null;
+    }
+  }
+};
