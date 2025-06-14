@@ -1,108 +1,79 @@
-import React, { useEffect } from 'react';
-import { Article, ArticleProgress as ArticleProgressType } from '../../constants/articles';
+import { COLORS, FONTS, SIZES } from '@/constants/Colors';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { Article } from '../../constants/articles';
+import { Card } from '../ui/Card';
+import { ProgressBar } from '../ui/ProgressBar';
 
 interface ArticleProgressProps {
   article: Article;
-  onProgressUpdate?: (progress: ArticleProgressType) => void;
+  onProgressUpdate?: (progress: Article['progress']) => void;
 }
 
 export const ArticleProgress: React.FC<ArticleProgressProps> = ({
   article,
   onProgressUpdate
 }) => {
-  const calculateProgress = () => {
-    const totalSections = article.content.split('##').length - 1;
-    const completedSections = article.progress.sectionsCompleted.length;
-    return (completedSections / totalSections) * 100;
-  };
-
-  const formatTimeSpent = (minutes: number) => {
-    if (minutes < 60) {
-      return `${minutes} min`;
-    }
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return `${hours}h ${remainingMinutes}m`;
-  };
-
-  const handleSectionComplete = (section: string) => {
-    const totalSections = article.content.split('##').length - 1;
-    const newSectionsCompleted = article.progress.sectionsCompleted.includes(section)
-      ? article.progress.sectionsCompleted.filter(s => s !== section)
-      : [...article.progress.sectionsCompleted, section];
-
-    const newProgress: ArticleProgressType = {
-      ...article.progress,
-      sectionsCompleted: newSectionsCompleted,
-      timeSpent: article.progress.timeSpent + 1,
-      lastRead: Date.now(),
-      completed: newSectionsCompleted.length === totalSections
-    };
-
-    onProgressUpdate?.(newProgress);
-  };
-
-  // Update completion status when all sections are done
-  useEffect(() => {
-    const totalSections = article.content.split('##').length - 1;
-    const isCompleted = article.progress.sectionsCompleted.length === totalSections;
-    
-    if (isCompleted && !article.progress.completed) {
-      onProgressUpdate?.({
-        ...article.progress,
-        completed: true
-      });
-    }
-  }, [article.progress.sectionsCompleted]);
+  const progress = article.progress.sectionsCompleted.length / 5; // Assuming 5 sections per article
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Reading Progress</h3>
-        <span className="text-sm text-gray-500">
-          {formatTimeSpent(article.progress.timeSpent)}
-        </span>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-        <div
-          className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-          style={{ width: `${calculateProgress()}%` }}
-        />
-      </div>
-
-      {/* Sections */}
-      <div className="space-y-2">
-        {article.content.split('##').slice(1).map((section, index) => {
-          const sectionTitle = section.split('\n')[0].trim();
-          const isCompleted = article.progress.sectionsCompleted.includes(sectionTitle);
-          
-          return (
-            <div
-              key={index}
-              className="flex items-center gap-2"
-            >
-              <input
-                type="checkbox"
-                checked={isCompleted}
-                onChange={() => handleSectionComplete(sectionTitle)}
-                className="w-4 h-4 text-blue-600 rounded"
-              />
-              <span className={isCompleted ? 'line-through text-gray-500' : ''}>
-                {sectionTitle}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Completion Status */}
-      {article.progress.completed && (
-        <div className="mt-4 p-2 bg-green-100 text-green-700 rounded">
-          🎉 Article completed!
-        </div>
-      )}
-    </div>
+    <Card style={styles.container}>
+      <Text style={styles.title}>Progress</Text>
+      <View style={styles.progressContainer}>
+        <ProgressBar progress={progress} />
+        <Text style={styles.progressText}>
+          {Math.round(progress * 100)}% Complete
+        </Text>
+      </View>
+      <View style={styles.statsContainer}>
+        <View style={styles.stat}>
+          <Text style={styles.statLabel}>Time Spent</Text>
+          <Text style={styles.statValue}>{article.progress.timeSpent} min</Text>
+        </View>
+        <View style={styles.stat}>
+          <Text style={styles.statLabel}>Last Read</Text>
+          <Text style={styles.statValue}>
+            {new Date(article.progress.lastRead).toLocaleDateString()}
+          </Text>
+        </View>
+      </View>
+    </Card>
   );
-}; 
+};
+
+const styles = StyleSheet.create({
+  container: {
+    marginVertical: SIZES.padding
+  },
+  title: {
+    fontSize: FONTS.h3.fontSize,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: SIZES.padding
+  },
+  progressContainer: {
+    marginBottom: SIZES.padding
+  },
+  progressText: {
+    fontSize: FONTS.body.fontSize,
+    color: COLORS.textLight,
+    marginTop: 4,
+    textAlign: 'right'
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  stat: {
+    flex: 1
+  },
+  statLabel: {
+    fontSize: FONTS.bodySmall.fontSize,
+    color: COLORS.textLight,
+    marginBottom: 2
+  },
+  statValue: {
+    fontSize: FONTS.body.fontSize,
+    color: COLORS.text
+  }
+}); 
