@@ -90,6 +90,54 @@ export default function AdminToolsScreen() {
     }
   };
   
+  const runStudySessionsMigration = async () => {
+    setIsLoading(true);
+    
+    try {
+      const migrationQuery = `
+      -- Create study_sessions table
+      CREATE TABLE IF NOT EXISTS study_sessions (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+          start_time TIMESTAMPTZ NOT NULL,
+          end_time TIMESTAMPTZ NOT NULL,
+          duration INTEGER NOT NULL, -- duration in seconds
+          subject TEXT NOT NULL DEFAULT 'General Study',
+          notes TEXT DEFAULT '',
+          created_at TIMESTAMPTZ DEFAULT now()
+      );
+
+      -- Create index for better query performance
+      CREATE INDEX IF NOT EXISTS idx_study_sessions_user_id ON study_sessions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_study_sessions_created_at ON study_sessions(created_at);
+      `;
+
+      const { error } = await supabase.rpc('execute_sql', {
+        query: migrationQuery
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      Alert.alert(
+        'Migration Successful',
+        'The study_sessions table has been created successfully.',
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('Study sessions migration error:', error);
+      
+      Alert.alert(
+        'Migration Failed',
+        `An error occurred during the study sessions migration: ${error?.message || 'Unknown error'}. You may need to run the SQL manually using the Supabase dashboard.`,
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   const checkTableStructure = async () => {
     setIsLoading(true);
     
@@ -273,6 +321,30 @@ export default function AdminToolsScreen() {
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <Text style={styles.buttonText}>Run Migration</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <View style={[styles.card, {marginTop: 20}]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="timer-outline" size={24} color="#0d1b2a" />
+              <Text style={styles.cardTitle}>Study Sessions Table Migration</Text>
+            </View>
+            <Text style={styles.cardDescription}>
+              This migration creates the study_sessions table to store timer data.
+              Run this to enable backend storage for the study timer feature.
+            </Text>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={[styles.button, styles.runButton]}
+                onPress={runStudySessionsMigration}
+                disabled={isLoading || isTableLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Create Table</Text>
                 )}
               </TouchableOpacity>
             </View>

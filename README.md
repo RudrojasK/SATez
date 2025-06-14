@@ -379,6 +379,56 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Community
 - **GitHub Discussions**: Share ideas and get help from the community
 
+## Study Timer Backend Setup
+
+The study timer feature requires a database table to store session data. To set up the backend:
+
+1. **Using Admin Tools (Recommended)**:
+   - Navigate to Settings → Admin Tools in the app
+   - Click "Create Table" under "Study Sessions Table Migration"
+   - This will create the `study_sessions` table with proper indexes
+
+2. **Manual Setup**:
+   If you prefer to set up the table manually via Supabase dashboard:
+   ```sql
+   -- Create study_sessions table
+   CREATE TABLE IF NOT EXISTS study_sessions (
+       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+       start_time TIMESTAMPTZ NOT NULL,
+       end_time TIMESTAMPTZ NOT NULL,
+       duration INTEGER NOT NULL, -- duration in seconds
+       subject TEXT NOT NULL DEFAULT 'General Study',
+       notes TEXT DEFAULT '',
+       created_at TIMESTAMPTZ DEFAULT now()
+   );
+
+   -- Create indexes for better query performance
+   CREATE INDEX IF NOT EXISTS idx_study_sessions_user_id ON study_sessions(user_id);
+   CREATE INDEX IF NOT EXISTS idx_study_sessions_created_at ON study_sessions(created_at);
+   ```
+
+3. **Row Level Security (RLS)**:
+   Make sure to enable RLS and add policies:
+   ```sql
+   -- Enable RLS
+   ALTER TABLE study_sessions ENABLE ROW LEVEL SECURITY;
+
+   -- Policy for users to see only their own sessions
+   CREATE POLICY "Users can view own study sessions" ON study_sessions
+       FOR SELECT USING (auth.uid() = user_id);
+
+   -- Policy for users to insert their own sessions
+   CREATE POLICY "Users can insert own study sessions" ON study_sessions
+       FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+   -- Policy for users to delete their own sessions
+   CREATE POLICY "Users can delete own study sessions" ON study_sessions
+       FOR DELETE USING (auth.uid() = user_id);
+   ```
+
+After setting up the table, the study timer will automatically sync data to the backend and users can access their study history across devices.
+
 ---
 
 <div align="center">

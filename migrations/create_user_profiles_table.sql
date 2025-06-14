@@ -38,13 +38,46 @@ BEFORE UPDATE ON user_profiles
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+-- Create Storage bucket for avatars if it doesn't exist
+DO $$
+BEGIN
+    BEGIN
+        -- Create profiles bucket if not exists
+        EXECUTE 'CREATE BUCKET IF NOT EXISTS profiles;';
+        -- Make bucket contents publicly accessible
+        EXECUTE 'ALTER BUCKET profiles ADD Policy allow_public_read
+                 FOR SELECT USING (true);';
+        -- Allow authenticated users to upload files
+        EXECUTE 'ALTER BUCKET profiles ADD Policy allow_authenticated_uploads
+                 FOR INSERT USING (auth.role() = ''authenticated'');';
+    EXCEPTION
+        WHEN OTHERS THEN
+            RAISE NOTICE 'Error creating storage bucket: %', SQLERRM;
+    END;
+END $$;
+
 -- Create trigger to automatically create a profile when a new user signs up
 -- This is typically done through Supabase auth hooks, but adding it here for completeness
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.user_profiles (id, email, name)
-    VALUES (NEW.id, NEW.email, COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)));
+    -- Get metadata from the new user
+    INSERT INTO public.user_profiles (
+        id, 
+        email, 
+        name, 
+        school, 
+        grade, 
+        target_score
+    )
+    VALUES (
+        NEW.id, 
+        NEW.email, 
+        COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+        NEW.raw_user_meta_data->>'school',
+        (NEW.raw_user_meta_data->>'grade')::integer,
+        (NEW.raw_user_meta_data->>'target_score')::integer
+    );
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

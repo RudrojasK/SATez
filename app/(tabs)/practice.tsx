@@ -12,6 +12,36 @@ const mockTests = [
   { id: '6', title: 'Practice Test 6', status: 'Remaining' },
 ];
 
+// Mapping from quiz items to their SAT domains
+const itemToDomain: Record<string, string> = {
+  // Math - Algebra items
+  'Linear Equations': 'algebra',
+  'Quadratic Equations': 'algebra', 
+  'Systems of Equations': 'algebra',
+  
+  // Math - Geometry items
+  'Area and Volume': 'geometry',
+  'Triangles': 'geometry',
+  'Circles': 'geometry',
+  
+  // Math - Data Analysis items
+  'Statistics': 'data analysis',
+  'Probability': 'data analysis', 
+  'Data Interpretation': 'data analysis',
+  
+  // Reading items
+  'Finding the Central Idea': 'reading',
+  'Summarizing Passages': 'reading',
+  'Citing Textual Evidence': 'reading',
+  'Analyzing Arguments': 'reading',
+  
+  // Writing items
+  'Commas & Semicolons': 'writing',
+  'Subject-Verb Agreement': 'writing',
+  'Analyzing Word Choice': 'writing',
+  'Effective Transitions': 'writing',
+};
+
 const quizCategories = {
   Math: [
     { title: 'Algebra', items: ['Linear Equations', 'Quadratic Equations', 'Systems of Equations'] },
@@ -82,7 +112,7 @@ const QuizzesView = () => {
   // Effect to handle deep links and tab changes from parameters
   useEffect(() => {
     if (typeof params.tab === 'string' && ['Math', 'Reading', 'Writing'].includes(params.tab)) {
-      setActiveQuizTab(params.tab as QuizTab);
+    setActiveQuizTab(params.tab as QuizTab);
     }
   }, [params.tab]);
 
@@ -107,7 +137,10 @@ const QuizzesView = () => {
                 <TouchableOpacity 
                   key={item} 
                   style={styles.quizItem} 
-                  onPress={() => router.push(`/(tabs)/quiz?id=${item.replace(/\s+/g, '-').toLowerCase()}`)}
+                  onPress={() => {
+                    const domain = itemToDomain[item] || 'general';
+                    router.push(`/(tabs)/quiz?id=opensat-${activeQuizTab.toLowerCase()}-${domain}`);
+                  }}
                 >
                   <Ionicons name="document-text-outline" size={20} color="#555" style={{marginRight: 8}}/>
                   <Text style={styles.quizItemText}>{item}</Text>
