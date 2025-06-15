@@ -1,7 +1,5 @@
 import { Button } from '@/components/Button';
-import { COLORS, SIZES } from '@/constants/Colors';
-import { practiceTests } from '@/constants/mockData';
-import Questions from '@/data/sat_questions_parsed.json';
+                      
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -33,56 +31,18 @@ export default function QuizScreen() {
   const { addTestQuestionResult } = usePracticeData();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft] = useState(60); // 60 seconds per question
-  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
-  const [questions, setQuestions] = useState<SATQuestion[]>([]);
+
   
   // Find the test details
   const test = practiceTests.find(t => t.id === id);
   
-  // Load and filter questions based on test type
-  useEffect(() => {
-    if (!test) return;
-    
-    let filteredQuestions = Questions.questions;
-    
-    // Filter questions based on test type
-    if (test.type === 'section') {
-      filteredQuestions = filteredQuestions.filter(q => 
-        q.test.includes('Reading') || q.domain.includes('Reading') ||
-        q.test.includes('Writing') || q.domain.includes('Writing')
-      );
-    } else if (test.type === 'drill') {
-      filteredQuestions = filteredQuestions.filter(q => 
-        q.test.includes('Math') || q.domain.includes('Math')
-      );
-    } else if (test.type === 'quiz') {
-      // For vocabulary and grammar quizzes, filter for writing questions
-      filteredQuestions = filteredQuestions.filter(q => 
-        q.test.includes('Writing') || q.domain.includes('Writing')
-      );
-    }
-    
-    // Get 3 random questions
-    const shuffled = filteredQuestions.sort(() => 0.5 - Math.random());
-    setQuestions(shuffled.slice(0, 3) as SATQuestion[]);
-  }, [test]);
-  
-  // Calculate progress percentage
-  const progress = questions.length > 0 ? Math.round(((currentQuestion + 1) / questions.length) * 100) : 0;
-  
-  // Handle option selection
-  const handleOptionSelect = (option: string) => {
-    setSelectedOption(option);
+
   };
   
   // Handle next question
   const handleNextQuestion = async () => {
     // Save the current question result if an option was selected
-    if (selectedOption !== null && questions.length > 0) {
-      const question = questions[currentQuestion];
-      const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-      const isCorrect = selectedOption === question.correctAnswer;
+
       
       console.log('Saving question result:', {
         testId: id as string,
@@ -156,17 +116,7 @@ export default function QuizScreen() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
   
-  if (questions.length === 0) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading questions...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-  
-  // Current question data
+
   const question = questions[currentQuestion];
   
   return (
@@ -214,33 +164,24 @@ export default function QuizScreen() {
           </View>
           
           <View style={styles.optionsContainer}>
-            {Object.entries(question.options).map(([key, value]) => (
+
               <TouchableOpacity
                 key={key}
                 style={[
                   styles.optionButton,
-                  selectedOption === key && styles.selectedOption,
+
                 ]}
                 onPress={() => handleOptionSelect(key)}
                 activeOpacity={0.7}
                 accessibilityRole="radio"
-                accessibilityState={{ checked: selectedOption === key }}
-                accessibilityLabel={`Option ${key}: ${value}`}
-              >
-                <View style={[
-                  styles.optionLabelContainer,
-                  selectedOption === key && styles.selectedOptionLabel
-                ]}>
-                  <Text style={[
-                    styles.optionLabel,
-                    selectedOption === key && styles.selectedOptionLabelText
+
                   ]}>
                     {key}
                   </Text>
                 </View>
                 <Text style={[
                   styles.optionText,
-                  selectedOption === key && styles.selectedOptionText
+
                 ]}>
                   {value}
                 </Text>

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Dimensions,
     Keyboard,
@@ -16,17 +17,20 @@ import {
     TouchableWithoutFeedback,
     View
 } from 'react-native';
+import { getGoogleAuthSetupMessage, isGoogleAuthConfigured } from '../../utils/googleAuth';
 import { successHapticFeedback } from '../../utils/haptics';
 import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
+  const router = useRouter();
+  const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const isGoogleConfigured = isGoogleAuthConfigured();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -40,6 +44,55 @@ export default function LoginScreen() {
       await signIn(email.trim(), password);
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Invalid email or password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!isGoogleConfigured) {
+      Alert.alert(
+        'Google Sign-In Not Available',
+        getGoogleAuthSetupMessage() || 'Google Sign-In is not configured.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // Try the force popup method directly for more reliable sign-in
+      try {
+        const { signInWithGoogleForcePopup } = await import('../../utils/googleAuth');
+        console.log('🔍 Login: Using force popup method');
+        const result = await signInWithGoogleForcePopup();
+        
+        if (result && 'cancelled' in result && result.cancelled) {
+          console.log('🔍 Login: User cancelled Google sign-in');
+          setIsLoading(false);
+          return; // Exit without showing error
+        }
+        
+        console.log('🔍 Login: Force popup completed');
+        // If we get here, we should have a session - navigation will be handled by auth state change
+        return;
+      } catch (popupError) {
+        console.error('🔍 Login: Force popup failed, falling back to standard method', popupError);
+        // Fall back to the standard method if force popup fails
+        await signInWithGoogle();
+      }
+      
+      // Navigation will be handled by the auth state change
+    } catch (error: any) {
+      // Only show error alert if it's not a cancellation
+      if (!error.message || !error.message.includes('cancel')) {
+        Alert.alert(
+          'Google Sign-In Failed',
+          error.message || 'Failed to sign in with Google. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -149,9 +202,31 @@ export default function LoginScreen() {
                 <View style={styles.dividerLine} />
               </View>
 
-              <TouchableOpacity style={styles.socialButton}>
-                <Ionicons name="logo-google" size={20} color="#DB4437" />
-                <Text style={styles.socialButtonText}>Continue with Google</Text>
+              <TouchableOpacity 
+                style={[
+                  styles.socialButton, 
+                  (isLoading || !isGoogleConfigured) && styles.socialButtonDisabled
+                ]}
+                onPress={handleGoogleSignIn}
+                disabled={isLoading || !isGoogleConfigured}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#DB4437" />
+                ) : (
+                  <>
+                    <Ionicons 
+                      name="logo-google" 
+                      size={20} 
+                      color={isGoogleConfigured ? "#DB4437" : "#999"} 
+                    />
+                    <Text style={[
+                      styles.socialButtonText,
+                      !isGoogleConfigured && styles.disabledText
+                    ]}>
+                      Continue with Google
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.socialButton}>
@@ -338,6 +413,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: '#fff',
   },
+  socialButtonDisabled: {
+    opacity: 0.7,
+  },
   socialButtonText: {
     marginLeft: 12,
     fontSize: 16,
@@ -359,5 +437,8 @@ const styles = StyleSheet.create({
     color: '#2962ff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  disabledText: {
+    color: '#999',
   },
 }); 

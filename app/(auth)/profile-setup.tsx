@@ -14,12 +14,11 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { supabase } from '../../utils/supabase';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, updateProfile } = useAuth();
   
   // Extract first and last name from user.name if available
   const [firstName, setFirstName] = useState('');
@@ -40,10 +39,20 @@ export default function ProfileSetupScreen() {
         }
       }
     }
+    
+    // Set school and other fields if available from signup
+    if (user?.school) {
+      setSchool(user.school);
+    }
+    
+    if (user?.grade) {
+      setGrade(user.grade.toString());
+    }
+    
+    if (user?.target_score) {
+      setTargetScore(user.target_score.toString());
+    }
   }, [user]);
-
-  // Grade options for picker
-  const gradeOptions = ['9', '10', '11', '12', 'College', 'Other'];
   
   const handleComplete = async () => {
     if (!user) {
@@ -54,26 +63,16 @@ export default function ProfileSetupScreen() {
     setIsLoading(true);
     
     try {
-      // Update the user profile with additional information
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({
-          name: `${firstName.trim()} ${lastName.trim()}`.trim(),
-          school: school.trim() || null,
-          grade: grade ? parseInt(grade, 10) : null,
-          target_score: targetScore ? parseInt(targetScore, 10) : null,
-          updated_at: new Date()
-        })
-        .eq('id', user.id);
+      // Prepare profile data
+      const profileData = {
+        name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+        school: school.trim(),
+        grade: grade ? parseInt(grade, 10) : undefined,
+        target_score: targetScore ? parseInt(targetScore, 10) : undefined
+      };
       
-      if (error) {
-        // If error is related to missing columns, just proceed
-        if (error.code === 'PGRST204') {
-          console.log('Database schema might need update, but continuing anyway');
-        } else {
-          throw error;
-        }
-      }
+      // Update profile using AuthContext
+      await updateProfile(profileData);
       
       // Refresh user data
       await refreshUser();

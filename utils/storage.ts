@@ -52,7 +52,9 @@ export const FavoriteResponsesStorage = {
   async saveFavoriteResponse(response: FavoriteResponse): Promise<void> {
     try {
       const existingResponses = await this.getFavoriteResponses();
-      const newResponses = [...existingResponses, response];
+      // Prevent duplicates
+      const filtered = existingResponses.filter(r => r.id !== response.id);
+      const newResponses = [...filtered, response];
       await AsyncStorage.setItem(STORAGE_KEYS.FAVORITE_RESPONSES, JSON.stringify(newResponses));
     } catch (error) {
       console.error('Failed to save favorite response:', error);

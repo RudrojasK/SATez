@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -20,7 +22,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function ProfileInformationScreen() {
   const router = useRouter();
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, updateProfile } = useAuth();
   
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -28,10 +30,13 @@ export default function ProfileInformationScreen() {
   const [school, setSchool] = useState('');
   const [grade, setGrade] = useState('');
   const [targetScore, setTargetScore] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [hasDbError, setHasDbError] = useState(false);
   const [dbErrorMessage, setDbErrorMessage] = useState('');
+  const [changesMade, setChangesMade] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -43,11 +48,105 @@ export default function ProfileInformationScreen() {
       setSchool(user.school || '');
       setGrade(user.grade?.toString() || '');
       setTargetScore(user.target_score?.toString() || '');
+      setAvatarUrl(user.avatar || null);
       setLoading(false);
     } else {
       setLoading(true);
     }
   }, [user]);
+
+  // Track changes to profile fields
+  useEffect(() => {
+    if (!user) return;
+
+    const nameParts = user.name ? user.name.split(' ') : ['', ''];
+    const currentFirstName = nameParts[0] || '';
+    const currentLastName = nameParts.slice(1).join(' ') || '';
+    const currentSchool = user.school || '';
+    const currentGrade = user.grade?.toString() || '';
+    const currentTargetScore = user.target_score?.toString() || '';
+
+    const hasChanges = 
+      firstName !== currentFirstName ||
+      lastName !== currentLastName ||
+      school !== currentSchool ||
+      grade !== currentGrade ||
+      targetScore !== currentTargetScore;
+
+    setChangesMade(hasChanges);
+  }, [firstName, lastName, school, grade, targetScore, user]);
+
+  const pickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please grant camera roll permissions to upload a profile photo.');
+        return;
+      }
+      
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+      
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        await uploadAvatar(asset.uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
+  const uploadAvatar = async (uri: string) => {
+    if (!user) return;
+    
+    try {
+      setIsUploading(true);
+      
+      // Read the file
+      const fileContent = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      
+      // Create a unique file path for the avatar
+      const filePath = `avatars/${user.id}-${Date.now()}.jpg`;
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('profiles')
+        .upload(filePath, fileContent, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+      
+      if (error) throw error;
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profiles')
+        .getPublicUrl(filePath);
+      
+      // Update the user's profile with the new avatar URL
+      await updateProfile({ avatar_url: publicUrl });
+      
+      // Update local state
+      setAvatarUrl(publicUrl);
+      
+      // Refresh user data
+      await refreshUser();
+      
+    } catch (error: any) {
+      console.error('Error uploading avatar:', error);
+      Alert.alert('Upload Failed', 'Failed to upload profile photo. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -57,94 +156,40 @@ export default function ProfileInformationScreen() {
     setDbErrorMessage('');
     
     try {
-      // Update directly with supabase - only updating name for now
-      // since the other columns might not exist yet
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({
-          name: `${firstName} ${lastName}`.trim(),
-        })
-        .eq('id', user.id);
+      // Prepare data to update
+      const profileData = {
+        name: `${firstName} ${lastName}`.trim(),
+        school: school.trim(),
+        grade: grade ? parseInt(grade, 10) : undefined,
+        target_score: targetScore ? parseInt(targetScore, 10) : undefined
+      };
       
-      if (error) {
-        // Check if this is a schema error
-        if (error.code === 'PGRST204') {
-          setHasDbError(true);
-          setDbErrorMessage('Database schema issue: Table or column does not exist');
-          throw new Error('Database schema error - user_profiles table might be missing');
-        }
-        throw error;
-      }
+      // Update profile using AuthContext
+      await updateProfile(profileData);
       
-      // Attempt to update the school, grade, and target_score fields separately
-      // This way if they don't exist yet, at least the name will be updated
-      try {
-        await supabase
-          .from('user_profiles')
-          .update({
-            school: school
-          })
-          .eq('id', user.id);
-      } catch (error: any) {
-        console.log('School field might not exist yet:', error);
-      }
-      
-      try {
-        if (grade) {
-          await supabase
-            .from('user_profiles')
-            .update({
-              grade: parseInt(grade, 10)
-            })
-            .eq('id', user.id);
-        }
-      } catch (error: any) {
-        console.log('Grade field might not exist yet:', error);
-      }
-      
-      try {
-        if (targetScore) {
-          await supabase
-            .from('user_profiles')
-            .update({
-              target_score: parseInt(targetScore, 10)
-            })
-            .eq('id', user.id);
-        }
-      } catch (error: any) {
-        console.log('Target score field might not exist yet:', error);
-      }
-      
-      // Refresh user data in context
-      await refreshUser();
+      // Reset change tracking
+      setChangesMade(false);
       
       Alert.alert(
         'Success', 
-        'Profile information updated successfully.\n\nNote: Some fields may require a database update by your administrator.',
+        'Profile information updated successfully.',
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error: any) {
       console.error('Error updating profile:', error);
       
-      if (hasDbError) {
+      // Check if this is a schema error
+      if (error.message && error.message.includes('column') && error.message.includes('does not exist')) {
+        setHasDbError(true);
+        setDbErrorMessage('Database schema issue: Table or column does not exist');
         Alert.alert(
-          'Database Setup Required', 
-          'Your database needs to be set up properly for profile information to work. Would you like to go to Admin Tools to fix this?',
-          [
-            { 
-              text: 'Go to Admin Tools', 
-              onPress: () => router.push("/(app)/admin-tools")
-            },
-            {
-              text: 'Cancel',
-              style: 'cancel'
-            }
-          ]
+          'Database Error', 
+          'There was an issue with the database structure. Please contact support.'
         );
       } else {
         Alert.alert(
           'Error', 
-          'Failed to update profile information. Please contact support for assistance.'
+          'Failed to update profile information. Please try again later.'
         );
       }
     } finally {
@@ -180,25 +225,30 @@ export default function ProfileInformationScreen() {
           <View style={styles.errorBanner}>
             <Ionicons name="alert-circle" size={20} color="#fff" />
             <Text style={styles.errorText}>
-              Database setup needed. Please use Admin Tools to fix this.
+              Database setup issue detected. Please contact support.
             </Text>
-            <TouchableOpacity 
-              onPress={() => router.push("/(app)/admin-tools")}
-              style={styles.fixButton}
-            >
-              <Text style={styles.fixButtonText}>Fix</Text>
-            </TouchableOpacity>
           </View>
         )}
         
         <ScrollView style={styles.container}>
           <View style={styles.avatarSection}>
             <View style={styles.avatarContainer}>
-              <Image 
-                source={{ uri: user?.avatar || 'https://i.imgur.com/8a5mJ2s.png' }} 
-                style={styles.avatar} 
-              />
-              <TouchableOpacity style={styles.editAvatarButton}>
+              {isUploading ? (
+                <View style={styles.uploadingContainer}>
+                  <ActivityIndicator size="small" color="#4a90e2" />
+                </View>
+              ) : (
+                <Image 
+                  source={{ uri: avatarUrl || 'https://i.imgur.com/8a5mJ2s.png' }} 
+                  style={styles.avatar} 
+                  onError={() => setAvatarUrl(null)}
+                />
+              )}
+              <TouchableOpacity 
+                style={styles.editAvatarButton}
+                onPress={pickImage}
+                disabled={isUploading}
+              >
                 <Ionicons name="camera" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
@@ -252,7 +302,6 @@ export default function ProfileInformationScreen() {
                 onChangeText={setSchool}
                 placeholder="Enter your school name"
               />
-              <Text style={styles.helperText}>This field may require database setup</Text>
             </View>
             
             <View style={styles.inputContainer}>
@@ -264,7 +313,6 @@ export default function ProfileInformationScreen() {
                 placeholder="Enter your grade"
                 keyboardType="number-pad"
               />
-              <Text style={styles.helperText}>This field may require database setup</Text>
             </View>
           </View>
           
@@ -280,35 +328,23 @@ export default function ProfileInformationScreen() {
                 placeholder="Enter your target SAT score"
                 keyboardType="number-pad"
               />
-              <Text style={styles.helperText}>This field may require database setup</Text>
             </View>
           </View>
           
           <TouchableOpacity 
-            style={styles.saveButton} 
+            style={[
+              styles.saveButton, 
+              !changesMade && styles.saveButtonDisabled,
+              isSaving && styles.saveButtonLoading
+            ]} 
             onPress={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !changesMade}
           >
             {isSaving ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text style={styles.saveButtonText}>Save Changes</Text>
             )}
-          </TouchableOpacity>
-
-          <View style={styles.noteContainer}>
-            <Text style={styles.noteText}>
-              Note: Some profile fields require database setup by an administrator.
-              If you encounter any issues, please use the Admin Tools to set up the database.
-            </Text>
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.adminToolsButton} 
-            onPress={() => router.push("/(app)/admin-tools")}
-          >
-            <Ionicons name="construct-outline" size={18} color="#6c757d" style={styles.adminIcon} />
-            <Text style={styles.adminText}>Open Admin Tools</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -368,18 +404,6 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontSize: 14,
   },
-  fixButton: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 4,
-    marginLeft: 10,
-  },
-  fixButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 12,
-  },
   avatarSection: {
     alignItems: 'center',
     marginVertical: 20,
@@ -401,6 +425,14 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
+  },
+  uploadingContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(200, 200, 200, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   editAvatarButton: {
     position: 'absolute',
@@ -460,40 +492,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 20,
   },
+  saveButtonDisabled: {
+    backgroundColor: '#a0c0e4',
+  },
+  saveButtonLoading: {
+    backgroundColor: '#3a80d2',
+  },
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  noteContainer: {
-    backgroundColor: '#e9ecef',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-  },
-  noteText: {
-    fontSize: 13,
-    color: '#495057',
-    lineHeight: 18,
-  },
-  adminToolsButton: {
-    flexDirection: 'row',
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-  },
-  adminIcon: {
-    marginRight: 8,
-  },
-  adminText: {
-    color: '#6c757d',
-    fontSize: 14,
-    fontWeight: '500',
   },
 }); 

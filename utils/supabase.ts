@@ -2,10 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import 'react-native-url-polyfill/auto';
+import { Message } from './groq';
 
 console.log('Checking Environment Variables in supabase.ts:');
 console.log('EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
-console.log('EXPO_PUBLIC_SUPABASE_ANON_KEY:', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY);
+console.log('EXPO_PUBLIC_SUPABASE_ANON_KEY:', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not set');
 
 // Create a custom storage implementation for web
 const createCustomStorage = () => {
@@ -50,16 +51,33 @@ const createCustomStorage = () => {
   return AsyncStorage;
 };
 
-// For testing purposes, use these default values if environment variables are not available
-// In production, these should be set in your environment
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://fmwocpzozkoifjdnohol.supabase.co";
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtd29jcHpvemtvaWZqZG5vaG9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTgzMjQ0MjYsImV4cCI6MjAxMzkwMDQyNn0.q99WUTMM0fR8dQ1X1QaD6hVFoZf1M5qGsCvlwK1K9TA";
+// Get environment variables
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
+// Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    'Supabase URL or Anon Key is missing. ',
-    'Please check your configuration.'
-  );
+  console.error('❌ Supabase configuration missing!');
+  console.error('Please create a .env file in your project root with:');
+  console.error('EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url');
+  console.error('EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key');
+  console.error('');
+  console.error('You can find these values in your Supabase dashboard:');
+  console.error('1. Go to https://supabase.com/dashboard');
+  console.error('2. Select your project');
+  console.error('3. Go to Settings > API');
+  console.error('4. Copy the Project URL and anon/public key');
+  
+  throw new Error('Supabase configuration is missing. Please check your environment variables.');
+}
+
+// Validate URL format
+if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
+  console.error('❌ Invalid Supabase URL format!');
+  console.error('Expected format: https://your-project-ref.supabase.co');
+  console.error('Current value:', supabaseUrl);
+  
+  throw new Error('Invalid Supabase URL format. Please check your EXPO_PUBLIC_SUPABASE_URL.');
 }
 
 // Get the appropriate storage handler based on platform
@@ -72,6 +90,23 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false, // Important for React Native
   },
+});
+
+// Test the connection
+supabase.auth.getSession().then(({ data, error }) => {
+  if (error) {
+    console.error('❌ Supabase connection test failed:', error.message);
+    if (error.message.includes('JSON Parse error')) {
+      console.error('This usually means:');
+      console.error('1. Your Supabase URL is incorrect');
+      console.error('2. Your Supabase project is not accessible');
+      console.error('3. Network connectivity issues');
+    }
+  } else {
+    console.log('✅ Supabase connection successful');
+  }
+}).catch((error) => {
+  console.error('❌ Supabase connection error:', error);
 });
 
 // Tells Supabase Auth to stop sending page rendering new Auth tokens
@@ -253,6 +288,310 @@ export const practiceDataService = {
       };
     } catch (error) {
       console.error('Error getting user stats:', error);
+      return null;
+    }
+  }
+};
+
+// Chat history service for Supabase
+export interface ChatSession {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  is_favorite: boolean;
+}
+
+export interface ChatMessageDB {
+  id: string;
+  session_id: string;
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  image_url?: string;
+  timestamp: string;
+  sequence_order: number;
+}
+
+export const chatHistoryService = {
+  // Create a new chat session
+  async createSession(userId: string, title: string): Promise<ChatSession | null> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .insert({
+          user_id: userId,
+          title,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as ChatSession;
+    } catch (error) {
+      console.error('Error creating chat session:', error);
+      return null;
+    }
+  },
+  
+  // Get all chat sessions for a user
+  async getSessions(userId: string): Promise<ChatSession[]> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as ChatSession[];
+    } catch (error) {
+      console.error('Error getting chat sessions:', error);
+      return [];
+    }
+  },
+  
+  // Update a chat session title or favorite status
+  async updateSession(sessionId: string, updates: { title?: string, is_favorite?: boolean }): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('chat_sessions')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error updating chat session:', error);
+      return false;
+    }
+  },
+  
+  // Delete a chat session
+  async deleteSession(sessionId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('chat_sessions')
+        .delete()
+        .eq('id', sessionId);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting chat session:', error);
+      return false;
+    }
+  },
+  
+  // Add messages to a chat session
+  async addMessages(sessionId: string, messages: Message[]): Promise<boolean> {
+    try {
+      // Get the current number of messages stored for this session
+      const { count: existingCount, error: countError } = await supabase
+        .from('chat_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('session_id', sessionId);
+
+      if (countError) throw countError;
+
+      const startIndex = existingCount || 0;
+
+      // Only insert messages that have not been saved yet
+      const newMessages = messages.slice(startIndex);
+
+      if (newMessages.length === 0) {
+        // Nothing new to save
+        await this.updateSession(sessionId, {});
+        return true;
+      }
+
+      const dbMessages = newMessages.map((msg, index) => ({
+        session_id: sessionId,
+        role: msg.role,
+        content: msg.content,
+        image_url: msg.imageUri,
+        timestamp: new Date(msg.timestamp).toISOString(),
+        sequence_order: startIndex + index
+      }));
+
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert(dbMessages);
+
+      if (error) throw error;
+       
+      // Update the session's updated_at timestamp
+      await this.updateSession(sessionId, {});
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding chat messages:', error);
+      return false;
+    }
+  },
+  
+  // Get all messages for a session
+  async getMessages(sessionId: string): Promise<Message[]> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('sequence_order', { ascending: true });
+      
+      if (error) throw error;
+      
+      // Convert database messages back to app format
+      return (data as ChatMessageDB[]).map(msg => ({
+        id: msg.id,
+        role: msg.role as 'system' | 'user' | 'assistant',
+        content: msg.content,
+        imageUri: msg.image_url,
+        timestamp: new Date(msg.timestamp).getTime()
+      }));
+    } catch (error) {
+      console.error('Error getting chat messages:', error);
+      return [];
+    }
+  },
+  
+  // Save current chat session to Supabase
+  async saveCurrentChat(userId: string, messages: Message[]): Promise<string | null> {
+    try {
+      if (messages.length <= 1) return null; // Don't save empty chats
+      
+      // Create a title from the first user message
+      const userMessages = messages.filter(m => m.role === 'user');
+      const title = userMessages.length > 0 
+        ? userMessages[0].content.substring(0, 30) + (userMessages[0].content.length > 30 ? '...' : '')
+        : 'New Chat';
+      
+      // Create a new session
+      const session = await this.createSession(userId, title);
+      if (!session) throw new Error('Failed to create chat session');
+      
+      // Add messages to the session
+      const success = await this.addMessages(session.id, messages);
+      if (!success) throw new Error('Failed to add messages to chat session');
+      
+      return session.id;
+    } catch (error) {
+      console.error('Error saving current chat:', error);
+      return null;
+    }
+  }
+};
+
+// Study sessions service for Supabase
+export interface StudySessionDB {
+  id: string;
+  user_id: string;
+  start_time: string;
+  end_time: string;
+  duration: number; // in seconds
+  subject: string;
+  notes: string;
+  created_at: string;
+}
+
+export const studySessionsService = {
+  // Save a study session
+  async saveSession(userId: string, sessionData: {
+    startTime: number;
+    endTime: number;
+    duration: number;
+    subject: string;
+    notes: string;
+  }): Promise<StudySessionDB | null> {
+    try {
+      const { data, error } = await supabase
+        .from('study_sessions')
+        .insert({
+          user_id: userId,
+          start_time: new Date(sessionData.startTime).toISOString(),
+          end_time: new Date(sessionData.endTime).toISOString(),
+          duration: sessionData.duration,
+          subject: sessionData.subject,
+          notes: sessionData.notes,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as StudySessionDB;
+    } catch (error) {
+      console.error('Error saving study session:', error);
+      return null;
+    }
+  },
+  
+  // Get all study sessions for a user
+  async getSessions(userId: string): Promise<StudySessionDB[]> {
+    try {
+      const { data, error } = await supabase
+        .from('study_sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as StudySessionDB[];
+    } catch (error) {
+      console.error('Error getting study sessions:', error);
+      return [];
+    }
+  },
+  
+  // Delete a study session
+  async deleteSession(sessionId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('study_sessions')
+        .delete()
+        .eq('id', sessionId);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting study session:', error);
+      return false;
+    }
+  },
+  
+  // Get study statistics for a user
+  async getStudyStats(userId: string): Promise<{
+    totalSessions: number;
+    totalStudyTime: number;
+    todaySessions: number;
+    todayStudyTime: number;
+    averageSessionLength: number;
+  } | null> {
+    try {
+      const sessions = await this.getSessions(userId);
+      const today = new Date().toDateString();
+      
+      const todaySessions = sessions.filter(s => 
+        new Date(s.created_at).toDateString() === today
+      );
+      
+      const totalStudyTime = sessions.reduce((sum, s) => sum + s.duration, 0);
+      const todayStudyTime = todaySessions.reduce((sum, s) => sum + s.duration, 0);
+      const averageSessionLength = sessions.length > 0 ? totalStudyTime / sessions.length : 0;
+      
+      return {
+        totalSessions: sessions.length,
+        totalStudyTime,
+        todaySessions: todaySessions.length,
+        todayStudyTime,
+        averageSessionLength
+      };
+    } catch (error) {
+      console.error('Error getting study stats:', error);
       return null;
     }
   }
