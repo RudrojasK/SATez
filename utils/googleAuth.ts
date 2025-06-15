@@ -13,73 +13,36 @@ const GOOGLE_OAUTH_CONFIG = {
   scopes: ['openid', 'profile', 'email'],
 };
 
-// Create Google OAuth request
-const createGoogleAuthRequest = () => {
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'satez', // You'll need to add this to app.json
-  });
-
-  const request = new AuthSession.AuthRequest({
-    clientId: GOOGLE_OAUTH_CONFIG.webClientId || '',
-    scopes: GOOGLE_OAUTH_CONFIG.scopes,
-    redirectUri,
-    responseType: AuthSession.ResponseType.Code,
-    codeChallenge: '', // Will be set automatically
-    usePKCE: true,
-  });
-
-  return request;
+// Helper function to get Supabase URL
+const getSupabaseUrl = () => {
+  let supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  
+  // If the environment variable is not set, use a hardcoded URL for testing
+  if (!supabaseUrl) {
+    supabaseUrl = 'https://kbcnxwqdrwfnbxkzwsqd.supabase.co';
+  }
+  
+  return supabaseUrl;
 };
 
+// Main Google Sign-In method
 export const signInWithGoogle = async () => {
   try {
-    // For development, we'll use Supabase's built-in OAuth
+    const supabaseUrl = getSupabaseUrl();
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: AuthSession.makeRedirectUri({
           scheme: 'satez',
         }),
+        skipBrowserRedirect: false,
       },
     });
-
-    if (error) {
-      console.error('Google Sign-In Error:', error);
-      throw error;
-    }
-
+    
+    if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Failed to sign in with Google:', error);
-    throw error;
-  }
-};
-
-// Alternative implementation using AuthSession for more control
-export const signInWithGoogleAdvanced = async () => {
-  try {
-    const request = createGoogleAuthRequest();
-    
-    const result = await request.promptAsync({
-      authorizationEndpoint: 'https://accounts.google.com/oauth/authorize',
-    });
-
-    if (result.type === 'success') {
-      // Exchange code for tokens via Supabase
-      const { data, error } = await supabase.auth.exchangeCodeForSession(result.params.code);
-      
-      if (error) {
-        throw error;
-      }
-
-      return data;
-    } else if (result.type === 'cancel') {
-      throw new Error('Google sign-in was cancelled');
-    } else {
-      throw new Error('Google sign-in failed');
-    }
-  } catch (error) {
-    console.error('Advanced Google Sign-In Error:', error);
     throw error;
   }
 };
@@ -96,7 +59,7 @@ export const isGoogleAuthConfigured = () => {
 // Get a user-friendly error message for Google OAuth setup
 export const getGoogleAuthSetupMessage = () => {
   if (!isGoogleAuthConfigured()) {
-    return 'Google Sign-In is not configured. Please check the GOOGLE_OAUTH_SETUP.md file for setup instructions.';
+    return 'Google Sign-In is not configured.';
   }
   return null;
-}; 
+};

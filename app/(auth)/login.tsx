@@ -61,14 +61,38 @@ export default function LoginScreen() {
     
     try {
       setIsLoading(true);
-      await signInWithGoogle();
+      
+      // Try the force popup method directly for more reliable sign-in
+      try {
+        const { signInWithGoogleForcePopup } = await import('../../utils/googleAuth');
+        console.log('🔍 Login: Using force popup method');
+        const result = await signInWithGoogleForcePopup();
+        
+        if (result && 'cancelled' in result && result.cancelled) {
+          console.log('🔍 Login: User cancelled Google sign-in');
+          setIsLoading(false);
+          return; // Exit without showing error
+        }
+        
+        console.log('🔍 Login: Force popup completed');
+        // If we get here, we should have a session - navigation will be handled by auth state change
+        return;
+      } catch (popupError) {
+        console.error('🔍 Login: Force popup failed, falling back to standard method', popupError);
+        // Fall back to the standard method if force popup fails
+        await signInWithGoogle();
+      }
+      
       // Navigation will be handled by the auth state change
     } catch (error: any) {
-      Alert.alert(
-        'Google Sign-In Failed',
-        error.message || 'Failed to sign in with Google. Please try again.',
-        [{ text: 'OK' }]
-      );
+      // Only show error alert if it's not a cancellation
+      if (!error.message || !error.message.includes('cancel')) {
+        Alert.alert(
+          'Google Sign-In Failed',
+          error.message || 'Failed to sign in with Google. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
     } finally {
       setIsLoading(false);
     }
