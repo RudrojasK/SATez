@@ -1,12 +1,29 @@
 import { Button } from '@/components/Button';
-import { COLORS, SHADOWS, SIZES } from '@/constants/Colors';
-import { quizQuestions as fallbackQuestions, practiceTests } from '@/constants/mockData';
-import { getRandomQuestions, Section as SatSection } from '@/utils/openSat';
+                      
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { usePracticeData } from '../context/PracticeDataContext';
+
+interface SATQuestion {
+  questionId: string;
+  assessment: string;
+  test: string;
+  domain: string;
+  skill: string;
+  questionDescription?: string;
+  question: string;
+  options: {
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+  };
+  correctAnswer: string;
+  rationale?: string;
+  difficulty?: string;
+}
 
 export default function QuizScreen() {
   const { id } = useLocalSearchParams();
@@ -14,90 +31,42 @@ export default function QuizScreen() {
   const { addTestQuestionResult } = usePracticeData();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
-  const [questions, setQuestions] = useState<any[]>([]);
+
   
   // Find the test details
   const test = practiceTests.find(t => t.id === id);
   
-  // Load questions once on mount based on id param
-  useEffect(() => {
-    if (!id) {
-      setQuestions(fallbackQuestions);
-      return;
-    }
 
-    // Expecting id like "opensat-math" or fallback to mock
-    if (typeof id === 'string' && id.startsWith('opensat-')) {
-      const tokens = (id as string).split('-');
-      const section = tokens[1] as SatSection;
-      const domain = tokens.slice(2).join('-');
-      const fetched = getRandomQuestions(section, domain ? 3 : 10, domain || undefined);
-      if (fetched.length) {
-        // convert to generic format with options array and correctAnswer index
-        const mapped = fetched.map(q => {
-          const optionKeys = Object.keys(q.question.choices);
-          const options = optionKeys.map(k => q.question.choices[k]);
-          const correctIndex = optionKeys.indexOf(q.question.correct_answer);
-          return {
-            id: q.id,
-            question: q.question.question,
-            options,
-            correctAnswer: correctIndex,
-            explanation: q.question.explanation,
-            difficulty: q.difficulty,
-          };
-        });
-        setQuestions(mapped);
-        return;
-      }
-    }
-    // default
-    setQuestions(fallbackQuestions);
-  }, [id]);
-  
-  // Calculate progress percentage
-  const progress = questions.length ? Math.round(((currentQuestion + 1) / questions.length) * 100) : 0;
-  
-  // Option selection stores letter index or string index
-  const handleOptionSelect = (index: number) => {
-    setSelectedOption(index.toString());
   };
   
   // Handle next question
   const handleNextQuestion = async () => {
     // Save the current question result if an option was selected
-    if (selectedOption !== null) {
-      const question = questions[currentQuestion];
-      const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-      const isCorrect = selectedOption === question.correctAnswer.toString();
-      const selectedOptionLetter = String.fromCharCode(65 + parseInt(selectedOption)); // Convert 0,1,2,3 to A,B,C,D
-      const correctOptionLetter = String.fromCharCode(65 + question.correctAnswer);
+
       
       console.log('Saving question result:', {
         testId: id as string,
-        questionId: question.id,
+        questionId: question.questionId,
         questionText: question.question,
         isCorrect,
-        selectedOption: selectedOptionLetter,
-        correctOption: correctOptionLetter,
+        selectedOption,
+        correctOption: question.correctAnswer,
         timeSpent,
         section: test?.title || 'Practice Test',
-        difficulty: test?.difficulty || 'Medium'
+        difficulty: question.difficulty || test?.difficulty || 'Medium'
       });
       
       try {
         await addTestQuestionResult({
           testId: id as string,
-          questionId: question.id,
+          questionId: question.questionId,
           questionText: question.question,
           isCorrect,
-          selectedOption: selectedOptionLetter,
-          correctOption: correctOptionLetter,
+          selectedOption,
+          correctOption: question.correctAnswer,
           timeSpent,
           section: test?.title || 'Practice Test',
-          difficulty: test?.difficulty || 'Medium'
+          difficulty: question.difficulty || test?.difficulty || 'Medium'
         });
         console.log('✅ Question result saved successfully');
       } catch (error) {
@@ -126,7 +95,7 @@ export default function QuizScreen() {
     }
   };
   
-  // Mock timer effect (non-functional, just for UI)
+  // Timer effect
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
@@ -147,10 +116,7 @@ export default function QuizScreen() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
   
-  if (!questions.length) {
-    return (<SafeAreaView><Text>Loading questions...</Text></SafeAreaView>);
-  }
-  
+
   const question = questions[currentQuestion];
   
   return (
@@ -187,40 +153,37 @@ export default function QuizScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {question.questionDescription && (
+            <View style={styles.descriptionContainer}>
+              <Text style={styles.descriptionText}>{question.questionDescription}</Text>
+            </View>
+          )}
+          
           <View style={styles.questionContainer}>
             <Text style={styles.questionText}>{question.question}</Text>
           </View>
           
           <View style={styles.optionsContainer}>
-            {question.options.map((option: string, index: number) => (
+
               <TouchableOpacity
-                key={index}
+                key={key}
                 style={[
                   styles.optionButton,
-                  selectedOption === index.toString() && styles.selectedOption,
+
                 ]}
-                onPress={() => handleOptionSelect(index)}
+                onPress={() => handleOptionSelect(key)}
                 activeOpacity={0.7}
                 accessibilityRole="radio"
-                accessibilityState={{ checked: selectedOption === index.toString() }}
-                accessibilityLabel={`Option ${String.fromCharCode(65 + index)}: ${option}`}
-              >
-                <View style={[
-                  styles.optionLabelContainer,
-                  selectedOption === index.toString() && styles.selectedOptionLabel
-                ]}>
-                  <Text style={[
-                    styles.optionLabel,
-                    selectedOption === index.toString() && styles.selectedOptionLabelText
+
                   ]}>
-                    {String.fromCharCode(65 + index)}
+                    {key}
                   </Text>
                 </View>
                 <Text style={[
                   styles.optionText,
-                  selectedOption === index.toString() && styles.selectedOptionText
+
                 ]}>
-                  {option}
+                  {value}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -242,6 +205,8 @@ export default function QuizScreen() {
 
 type Styles = {
   container: ViewStyle;
+  loadingContainer: ViewStyle;
+  loadingText: TextStyle;
   header: ViewStyle;
   progressInfo: ViewStyle;
   questionCounter: TextStyle;
@@ -251,6 +216,8 @@ type Styles = {
   timerText: TextStyle;
   scrollContainer: ViewStyle;
   scrollContent: ViewStyle;
+  descriptionContainer: ViewStyle;
+  descriptionText: TextStyle;
   questionContainer: ViewStyle;
   questionText: TextStyle;
   optionsContainer: ViewStyle;
@@ -270,6 +237,15 @@ const styles = StyleSheet.create<Styles>({
     flex: 1,
     backgroundColor: COLORS.background,
     padding: SIZES.padding,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: COLORS.textLight,
   },
   header: {
     flexDirection: 'row',
@@ -300,65 +276,62 @@ const styles = StyleSheet.create<Styles>({
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: SIZES.smallRadius,
-    ...SHADOWS.small,
+    gap: 4,
   },
   timerText: {
     fontSize: 16,
-    fontWeight: '600',
     color: COLORS.textLight,
-    marginLeft: 4,
   },
   scrollContainer: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 16,
+  },
+  descriptionContainer: {
+    backgroundColor: COLORS.card,
+    padding: 16,
+    borderRadius: SIZES.radius,
+    marginBottom: 16,
+  },
+  descriptionText: {
+    fontSize: 16,
+    color: COLORS.text,
+    lineHeight: 24,
   },
   questionContainer: {
-    marginBottom: 24,
-    marginTop: 8,
+    backgroundColor: COLORS.card,
+    padding: 16,
+    borderRadius: SIZES.radius,
+    marginBottom: 16,
   },
   questionText: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '600',
     color: COLORS.text,
-    lineHeight: 32,
+    lineHeight: 26,
   },
   optionsContainer: {
     gap: 12,
-    marginBottom: 20,
-    ...(Platform.OS === 'android' && {
-      gap: 0,
-      marginBottom: 10,
-    })
   },
   optionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.card,
-    borderRadius: SIZES.radius,
     padding: 16,
-    ...SHADOWS.small,
+    borderRadius: SIZES.radius,
     borderWidth: 1,
     borderColor: COLORS.border,
-    ...(Platform.OS === 'android' && {
-      marginBottom: 12,
-    })
   },
   selectedOption: {
-    backgroundColor: 'rgba(46, 91, 255, 0.08)',
     borderColor: COLORS.primary,
-    borderWidth: 2,
+    backgroundColor: 'rgba(46, 91, 255, 0.08)',
   },
   optionLabelContainer: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(46, 91, 255, 0.1)',
+    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -369,21 +342,23 @@ const styles = StyleSheet.create<Styles>({
   optionLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: COLORS.text,
   },
   selectedOptionLabelText: {
     color: '#FFFFFF',
   },
   optionText: {
+    flex: 1,
     fontSize: 16,
     color: COLORS.text,
-    flex: 1,
+    lineHeight: 24,
   },
   selectedOptionText: {
-    fontWeight: '500',
+    color: COLORS.primary,
   },
   footer: {
-    marginTop: 'auto',
-    paddingVertical: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
 }); 
