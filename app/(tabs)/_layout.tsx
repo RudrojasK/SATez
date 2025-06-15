@@ -49,6 +49,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="tutorials"
         options={{
+          href: null,
           title: 'Tutorials',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 

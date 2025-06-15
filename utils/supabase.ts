@@ -187,6 +187,7 @@ export const practiceDataService = {
     testId: string;
     questionId: string;
     questionText: string;
+    options: { [key: string]: string };
     isCorrect: boolean;
     selectedOption: string;
     correctOption: string;
@@ -202,6 +203,7 @@ export const practiceDataService = {
           test_id: data.testId,
           question_id: data.questionId,
           question_text: data.questionText,
+          options: data.options,
           is_correct: data.isCorrect,
           selected_option: data.selectedOption,
           correct_option: data.correctOption,

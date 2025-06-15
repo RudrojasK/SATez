@@ -5,6 +5,14 @@ import { ActivityIndicator, Image, SafeAreaView, ScrollView, StyleSheet, Text, T
 import { useAuth } from '../context/AuthContext';
 import { usePracticeData } from '../context/PracticeDataContext';
 
+// Define the shape of a quiz session for type safety
+interface Quiz {
+  id: string;
+  title: string;
+  date: Date;
+  questions: any[];
+}
+
 const ProfileScreen = () => {
   const router = useRouter();
   const { user } = useAuth();
@@ -13,6 +21,32 @@ const ProfileScreen = () => {
   useEffect(() => {
     fetchUserStats();
   }, []);
+
+  // Group recent questions by quiz session
+  const getRecentQuizzes = (): Quiz[] => {
+    if (!stats || !stats.recentTestQuestions) return [];
+
+    const quizzes = stats.recentTestQuestions.reduce((acc, q) => {
+      const key = q.testId;
+      if (!acc[key]) {
+        acc[key] = {
+          id: key,
+          title: q.section,
+          date: new Date(q.created_at),
+          questions: []
+        };
+      }
+      acc[key].questions.push(q);
+      if (new Date(q.created_at) > acc[key].date) {
+        acc[key].date = new Date(q.created_at);
+      }
+      return acc;
+    }, {} as { [key: string]: Quiz });
+    
+    return (Object.values(quizzes) as Quiz[]).sort((a, b) => b.date.getTime() - a.date.getTime());
+  };
+  
+  const recentQuizzes = getRecentQuizzes();
 
   // Default avatar if user doesn't have one
   const avatarUrl = user?.avatar || 'https://i.imgur.com/8a5mJ2s.png';
@@ -148,16 +182,25 @@ const ProfileScreen = () => {
         </Section>
         
         <Section title="Recent Quizzes">
-          {stats && stats.recentTestQuestions && stats.recentTestQuestions.length > 0 ? (
-            stats.recentTestQuestions.map((quiz, index) => (
-              <RecentQuizCard 
-                key={index}
-                icon={quiz.section?.toLowerCase().includes('math') ? 'calculator-outline' : 'book-outline'}
-                title={quiz.section || 'Practice Quiz'}
-                date={new Date(quiz.created_at).toLocaleDateString()}
-                isCorrect={quiz.isCorrect}
-              />
-            ))
+          {recentQuizzes.length > 0 ? (
+            recentQuizzes.map((quiz, index) => {
+              const correctCount = quiz.questions.filter(q => q.isCorrect).length;
+              const totalCount = quiz.questions.length;
+
+              return (
+                <RecentQuizCard 
+                  key={index}
+                  icon={quiz.title?.toLowerCase().includes('math') ? 'calculator-outline' : 'book-outline'}
+                  title={quiz.title || 'Practice Quiz'}
+                  date={quiz.date.toLocaleDateString()}
+                  score={`${correctCount}/${totalCount}`}
+                  onPress={() => router.push({ 
+                    pathname: '/quiz-review', 
+                    params: { questions: JSON.stringify(quiz.questions), title: quiz.title } 
+                  })}
+                />
+              );
+            })
           ) : (
             <Text style={styles.noDataText}>No recent quizzes completed.</Text>
           )}
@@ -224,8 +267,8 @@ const RecommendationCard = ({ icon, subject, focus }: { icon: any; subject: stri
   </View>
 );
 
-const RecentQuizCard = ({ icon, title, date, isCorrect }: { icon: any; title: string; date: string; isCorrect: boolean }) => (
-  <View style={styles.card}>
+const RecentQuizCard = ({ icon, title, date, score, onPress }: { icon: any; title:string; date: string; score: string; onPress: () => void }) => (
+  <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.cardIcon}>
       <Ionicons name={icon} size={24} color="#4a4a4a" />
     </View>
@@ -233,8 +276,10 @@ const RecentQuizCard = ({ icon, title, date, isCorrect }: { icon: any; title: st
       <Text style={styles.recommendationSubject}>{title}</Text>
       <Text style={styles.subject}>Completed on: {date}</Text>
     </View>
-    <View style={[styles.statusIndicator, { backgroundColor: isCorrect ? '#4CAF50' : '#F44336' }]} />
-  </View>
+    <View style={styles.scoreBadge}>
+      <Text style={styles.scoreText}>{score}</Text>
+    </View>
+  </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
@@ -370,12 +415,18 @@ const styles = StyleSheet.create({
     padding: 20,
     fontStyle: 'italic',
   },
-  statusIndicator: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  scoreBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#e9ecef',
     marginLeft: 'auto',
     alignSelf: 'center',
+  },
+  scoreText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4a4a4a',
   },
 });
 

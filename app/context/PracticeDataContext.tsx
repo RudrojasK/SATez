@@ -21,7 +21,7 @@ interface PracticeDataContextType {
   statsLoading: boolean;
   fetchUserStats: () => Promise<void>;
   addVocabResult: (result: { word: string; isCorrect: boolean; selectedOption: string; correctOption: string; timeSpent: number; }) => Promise<void>;
-  addTestQuestionResult: (result: { testId: string; questionId: string; questionText: string; isCorrect: boolean; selectedOption: string; correctOption: string; timeSpent: number; section?: string; difficulty?: string; }) => Promise<void>;
+  addTestQuestionResult: (result: { testId: string; questionId: string; questionText: string; options: { [key: string]: string }; isCorrect: boolean; selectedOption: string; correctOption: string; timeSpent: number; section?: string; difficulty?: string; }) => Promise<void>;
 }
 
 // Create the context
@@ -108,7 +108,7 @@ export function PracticeDataProvider({ children }: { children: ReactNode }) {
   };
   
   // Function to add a new test question result
-  const addTestQuestionResult = async (result: { testId: string; questionId: string; questionText: string; isCorrect: boolean; selectedOption: string; correctOption: string; timeSpent: number; section?: string; difficulty?: string; }) => {
+  const addTestQuestionResult = async (result: { testId: string; questionId: string; questionText: string; options: { [key: string]: string }; isCorrect: boolean; selectedOption: string; correctOption: string; timeSpent: number; section?: string; difficulty?: string; }) => {
     console.log('=== addTestQuestionResult called ===');
     console.log('User:', user);
     console.log('Result data:', result);
@@ -146,7 +146,7 @@ export function PracticeDataProvider({ children }: { children: ReactNode }) {
         accuracyRate: newAccuracy,
         totalHours: Math.round(newTimeSpent * 10) / 10,
         testQuestionCount: prevStats.testQuestionCount + 1,
-        recentTestQuestions: [newTestResult, ...prevStats.recentTestQuestions].slice(0, 3),
+        recentTestQuestions: [newTestResult, ...prevStats.recentTestQuestions].slice(0, 50),
         recentSessions: [newTestResult, ...prevStats.recentSessions].slice(0, 5)
       };
       
