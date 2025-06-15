@@ -1,9 +1,9 @@
-import { articles } from '@/constants/articles';
-import { COLORS, FONTS, SHADOWS, SIZES } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { articles } from '../../../constants/articles';
+import { COLORS, FONTS, SHADOWS, SIZES } from '../../../constants/Colors';
 
 export default function TutorialsListScreen() {
   const router = useRouter();
@@ -65,7 +65,7 @@ export default function TutorialsListScreen() {
                           {article.readingTime} min read
                         </Text>
                       </View>
-                      {article.progress.completed && (
+                      {article.progress && article.progress.completed && (
                         <View style={styles.completedBadge}>
                           <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
                           <Text style={styles.completedText}>

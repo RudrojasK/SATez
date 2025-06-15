@@ -7,7 +7,25 @@ export interface Article {
   // Full content of the article in Markdown format
   content: string; 
   // Estimated reading time in minutes
-
+  readingTime: number;
+  // Difficulty level
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
+  // Tags for categorization
+  tags?: string[];
+  // Highlighted content
+  highlights?: {
+    id: string;
+    text: string;
+    type: string;
+    color: string;
+  }[];
+  // Progress tracking
+  progress?: {
+    lastRead?: number;
+    completed?: boolean;
+    timeSpent?: number;
+    sectionsCompleted?: string[];
+  };
 }
 
 export const articles: Article[] = [

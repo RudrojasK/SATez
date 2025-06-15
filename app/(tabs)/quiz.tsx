@@ -1,10 +1,10 @@
 import { Button } from '@/components/Button';
-                      
 import Questions from '@/data/sat_questions_parsed.json';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { COLORS, SIZES } from '../../constants/Colors';
 import { usePracticeData } from '../context/PracticeDataContext';
 
 interface SATQuestion {
@@ -60,7 +60,16 @@ export default function QuizScreen() {
   const [questions, setQuestions] = useState<SATQuestion[]>([]);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
   const [timeLeft, setTimeLeft] = useState(60);
-
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Add this to calculate progress
+  const progress = questions.length > 0 ? ((currentQuestion + 1) / questions.length) * 100 : 0;
+  
+  // Add this to handle option selection
+  const handleOptionSelect = (option: string) => {
+    setSelectedOption(option);
+  };
+  
   useEffect(() => {
     if (typeof id === 'string' && id.startsWith('opensat-math-')) {
       const topic = id.replace('opensat-math-', '').toLowerCase();
@@ -73,20 +82,41 @@ export default function QuizScreen() {
       );
       const shuffled = [...topicQuestions].sort(() => 0.5 - Math.random());
       setQuestions(shuffled.slice(0, 3));
+      setIsLoading(false);
     } else {
       const shuffled = [...(Questions.questions as SATQuestion[])].sort(() => 0.5 - Math.random());
       setQuestions(shuffled.slice(0, 3));
+      setIsLoading(false);
     }
   }, [id]);
   
   // Find the test details
   const test = practiceTests.find(t => t.id === id);
   
+  // Timer effect
+  useEffect(() => {
+    if (!isLoading) {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [currentQuestion, isLoading]);
+  
+  // Reset question start time when question changes
+  useEffect(() => {
+    if (!isLoading) {
+      setQuestionStartTime(Date.now());
+    }
+  }, [currentQuestion, isLoading]);
   
   // Handle next question
   const handleNextQuestion = async () => {
     // Save the current question result if an option was selected
-
+    if (selectedOption && questions.length > 0 && questions[currentQuestion]) {
+      const question = questions[currentQuestion];
+      const isCorrect = selectedOption === question.correctAnswer;
+      const timeSpent = Math.round((Date.now() - questionStartTime) / 1000);
       
       console.log('Saving question result:', {
         testId: id as string,
@@ -97,7 +127,7 @@ export default function QuizScreen() {
         correctOption: question.correctAnswer,
         timeSpent,
         section: test?.title || 'Practice Test',
-        difficulty: question.difficulty || test?.difficulty || 'Medium'
+        difficulty: question.difficulty || 'Medium'
       });
       
       try {
@@ -110,7 +140,7 @@ export default function QuizScreen() {
           correctOption: question.correctAnswer,
           timeSpent,
           section: test?.title || 'Practice Test',
-          difficulty: question.difficulty || test?.difficulty || 'Medium'
+          difficulty: question.difficulty || 'Medium'
         });
         console.log('✅ Question result saved successfully');
       } catch (error) {
@@ -137,21 +167,7 @@ export default function QuizScreen() {
         ]
       );
     }
-  
-  
-  // Timer effect
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, [currentQuestion]);
-  
-  // Reset question start time when question changes
-  useEffect(() => {
-    setQuestionStartTime(Date.now());
-  }, [currentQuestion]);
+  };
   
   // Format time remaining
   const formatTime = (seconds: number) => {
@@ -160,7 +176,6 @@ export default function QuizScreen() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
   
-
   const question = questions[currentQuestion];
   
   return (
@@ -172,83 +187,91 @@ export default function QuizScreen() {
         }}
       />
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.progressInfo}>
-            <Text style={styles.questionCounter}>
-              Question {currentQuestion + 1} of {questions.length}
-            </Text>
-            <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBar, { width: `${progress}%` }]} />
-            </View>
+        {isLoading || !question ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading questions...</Text>
           </View>
-          <View style={styles.timerContainer}>
-            <Ionicons name="time-outline" size={20} color={timeLeft < 10 ? COLORS.error : COLORS.textLight} />
-            <Text style={[
-              styles.timerText, 
-              timeLeft < 10 && {color: COLORS.error}
-            ]}>
-              {formatTime(timeLeft)}
-            </Text>
-          </View>
-        </View>
-        
-        <ScrollView 
-          style={styles.scrollContainer}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {question.questionDescription && (
-            <View style={styles.descriptionContainer}>
-              <Text style={styles.descriptionText}>{question.questionDescription}</Text>
-            </View>
-          )}
-          
-          <View style={styles.questionContainer}>
-            <Text style={styles.questionText}>{question.question}</Text>
-          </View>
-          
-          <View style={styles.optionsContainer}>
-            {Object.entries(question.options).map(([key, value]) => (
-              <TouchableOpacity
-                key={key}
-                style={[
-                  styles.optionButton,
-                  selectedOption === key && styles.selectedOption
-                ]}
-                onPress={() => handleOptionSelect(key)}
-                activeOpacity={0.7}
-                accessibilityRole="radio"
-              >
-                <View style={[
-                  styles.optionLabelContainer,
-                  selectedOption === key && styles.selectedOptionLabel
-                ]}>
-                  <Text style={[
-                    styles.optionLabel,
-                    selectedOption === key && styles.selectedOptionLabelText
-                  ]}>
-                    {key}
-                  </Text>
-                </View>
-                <Text style={[
-                  styles.optionText,
-                  selectedOption === key && styles.selectedOptionText
-                ]}>
-                  {value}
+        ) : (
+          <>
+            <View style={styles.header}>
+              <View style={styles.progressInfo}>
+                <Text style={styles.questionCounter}>
+                  Question {currentQuestion + 1} of {questions.length}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-        
-        <View style={styles.footer}>
-          <Button
-            title={currentQuestion < questions.length - 1 ? "Next Question" : "Finish Quiz"}
-            onPress={handleNextQuestion}
-            disabled={selectedOption === null}
-            fullWidth
-          />
-        </View>
+                <View style={styles.progressBarContainer}>
+                  <View style={[styles.progressBar, { width: `${progress}%` }]} />
+                </View>
+              </View>
+              <View style={styles.timerContainer}>
+                <Ionicons name="time-outline" size={20} color={timeLeft < 10 ? COLORS.error : COLORS.textLight} />
+                <Text style={[
+                  styles.timerText, 
+                  timeLeft < 10 && {color: COLORS.error}
+                ]}>
+                  {formatTime(timeLeft)}
+                </Text>
+              </View>
+            </View>
+            
+            <ScrollView 
+              style={styles.scrollContainer}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {question.questionDescription && (
+                <View style={styles.descriptionContainer}>
+                  <Text style={styles.descriptionText}>{question.questionDescription}</Text>
+                </View>
+              )}
+              
+              <View style={styles.questionContainer}>
+                <Text style={styles.questionText}>{question.question}</Text>
+              </View>
+              
+              <View style={styles.optionsContainer}>
+                {Object.entries(question.options).map(([key, value]) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[
+                      styles.optionButton,
+                      selectedOption === key && styles.selectedOption
+                    ]}
+                    onPress={() => handleOptionSelect(key)}
+                    activeOpacity={0.7}
+                    accessibilityRole="radio"
+                  >
+                    <View style={[
+                      styles.optionLabelContainer,
+                      selectedOption === key && styles.selectedOptionLabel
+                    ]}>
+                      <Text style={[
+                        styles.optionLabel,
+                        selectedOption === key && styles.selectedOptionLabelText
+                      ]}>
+                        {key}
+                      </Text>
+                    </View>
+                    <Text style={[
+                      styles.optionText,
+                      selectedOption === key && styles.selectedOptionText
+                    ]}>
+                      {value}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+            
+            <View style={styles.footer}>
+              <Button
+                title={currentQuestion < questions.length - 1 ? "Next Question" : "Finish Quiz"}
+                onPress={handleNextQuestion}
+                disabled={selectedOption === null}
+                fullWidth
+              />
+            </View>
+          </>
+        )}
       </SafeAreaView>
     </>
   );

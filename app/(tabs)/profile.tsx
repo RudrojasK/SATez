@@ -147,6 +147,22 @@ const ProfileScreen = () => {
           />
         </Section>
         
+        <Section title="Recent Quizzes">
+          {stats && stats.recentTestQuestions && stats.recentTestQuestions.length > 0 ? (
+            stats.recentTestQuestions.map((quiz, index) => (
+              <RecentQuizCard 
+                key={index}
+                icon={quiz.section?.toLowerCase().includes('math') ? 'calculator-outline' : 'book-outline'}
+                title={quiz.section || 'Practice Quiz'}
+                date={new Date(quiz.created_at).toLocaleDateString()}
+                isCorrect={quiz.isCorrect}
+              />
+            ))
+          ) : (
+            <Text style={styles.noDataText}>No recent quizzes completed.</Text>
+          )}
+        </Section>
+        
         <Section title="Upcoming Practice Tests">
           <UpcomingTestCard
             date={getUpcomingTestDate()}
@@ -205,6 +221,19 @@ const RecommendationCard = ({ icon, subject, focus }: { icon: any; subject: stri
       <Text style={styles.recommendationSubject}>{subject}</Text>
       <Text style={styles.subject}>{focus}</Text>
     </View>
+  </View>
+);
+
+const RecentQuizCard = ({ icon, title, date, isCorrect }: { icon: any; title: string; date: string; isCorrect: boolean }) => (
+  <View style={styles.card}>
+    <View style={styles.cardIcon}>
+      <Ionicons name={icon} size={24} color="#4a4a4a" />
+    </View>
+    <View style={styles.cardContent}>
+      <Text style={styles.recommendationSubject}>{title}</Text>
+      <Text style={styles.subject}>Completed on: {date}</Text>
+    </View>
+    <View style={[styles.statusIndicator, { backgroundColor: isCorrect ? '#4CAF50' : '#F44336' }]} />
   </View>
 );
 
@@ -334,6 +363,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#0d1b2a',
+  },
+  noDataText: {
+    textAlign: 'center',
+    color: '#6c757d',
+    padding: 20,
+    fontStyle: 'italic',
+  },
+  statusIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginLeft: 'auto',
+    alignSelf: 'center',
   },
 });
 

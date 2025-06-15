@@ -79,8 +79,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="quiz"
         options={{
-          href: null,
           headerShown: false,
+          tabBarItemStyle: {display: "none"}
         }}
       />
       <Tabs.Screen
