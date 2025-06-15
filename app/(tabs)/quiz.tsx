@@ -1,5 +1,6 @@
 import { Button } from '@/components/Button';
                       
+import Questions from '@/data/sat_questions_parsed.json';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -25,19 +26,62 @@ interface SATQuestion {
   difficulty?: string;
 }
 
+interface PracticeTest {
+  id: string;
+  title: string;
+  description: string;
+  questions: number;
+  timeLimit: number;
+}
+
+const practiceTests: PracticeTest[] = [
+  {
+    id: 'opensat-math-algebra',
+    title: 'Algebra Practice',
+    description: 'Practice your algebra skills',
+    questions: 3,
+    timeLimit: 60
+  },
+  {
+    id: 'opensat-math-geometry',
+    title: 'Geometry Practice',
+    description: 'Practice your geometry skills',
+    questions: 3,
+    timeLimit: 60
+  }
+];
+
 export default function QuizScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { addTestQuestionResult } = usePracticeData();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<SATQuestion[]>([]);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [timeLeft, setTimeLeft] = useState(60);
 
+  useEffect(() => {
+    if (typeof id === 'string' && id.startsWith('opensat-math-')) {
+      const topic = id.replace('opensat-math-', '').toLowerCase();
+      // Cast the questions to SATQuestion[] and ensure all required fields are present
+      const allMathQuestions = (Questions.questions as SATQuestion[]).filter(q =>
+        q.test.toLowerCase().includes('math')
+      );
+      const topicQuestions = allMathQuestions.filter(q =>
+        q.domain && q.domain.toLowerCase().includes(topic)
+      );
+      const shuffled = [...topicQuestions].sort(() => 0.5 - Math.random());
+      setQuestions(shuffled.slice(0, 3));
+    } else {
+      const shuffled = [...(Questions.questions as SATQuestion[])].sort(() => 0.5 - Math.random());
+      setQuestions(shuffled.slice(0, 3));
+    }
+  }, [id]);
   
   // Find the test details
   const test = practiceTests.find(t => t.id === id);
   
-
-  };
   
   // Handle next question
   const handleNextQuestion = async () => {
@@ -93,7 +137,7 @@ export default function QuizScreen() {
         ]
       );
     }
-  };
+  
   
   // Timer effect
   useEffect(() => {
@@ -164,24 +208,31 @@ export default function QuizScreen() {
           </View>
           
           <View style={styles.optionsContainer}>
-
+            {Object.entries(question.options).map(([key, value]) => (
               <TouchableOpacity
                 key={key}
                 style={[
                   styles.optionButton,
-
+                  selectedOption === key && styles.selectedOption
                 ]}
                 onPress={() => handleOptionSelect(key)}
                 activeOpacity={0.7}
                 accessibilityRole="radio"
-
+              >
+                <View style={[
+                  styles.optionLabelContainer,
+                  selectedOption === key && styles.selectedOptionLabel
+                ]}>
+                  <Text style={[
+                    styles.optionLabel,
+                    selectedOption === key && styles.selectedOptionLabelText
                   ]}>
                     {key}
                   </Text>
                 </View>
                 <Text style={[
                   styles.optionText,
-
+                  selectedOption === key && styles.selectedOptionText
                 ]}>
                   {value}
                 </Text>
