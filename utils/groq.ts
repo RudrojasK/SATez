@@ -1,11 +1,13 @@
 // GROQ API integration for the tutor feature
 // This file manages communications with the GROQ API for LLM conversations
+import Constants from 'expo-constants';
 
-// import { ApiKeyStorage } from './storage';
+// Get configuration from app.config.js
+const extraConfig = Constants.expoConfig?.extra || {};
 
 // API key for GROQ integration - Using a fixed API key for all users
 // This is a shared API key for simplicity - in production, you would want to handle this more securely
-export const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || '';  // Replace with your valid GROQ API key
+export const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || extraConfig.groqApiKey || '';  // Replace with your valid GROQ API key
 
 // The model to be used for conversations
 export const DEFAULT_MODEL = "llama3-70b-8192";
@@ -36,10 +38,9 @@ export interface ChatParams {
 
 /**
  * Check if API key is configured
- * Always returns true since we're using a hardcoded key
  */
 export function isApiKeyConfigured(): boolean {
-  return true;
+  return !!GROQ_API_KEY;
 }
 
 /**
@@ -78,8 +79,8 @@ export async function imageToBase64(uri: string): Promise<string> {
 
 /**
  * Sends a chat completion request to the GROQ API
- * Always uses the hardcoded API key for simplicity
  * Now supports image analysis using Llama 4 Scout
+ * Gracefully handles missing API key by returning a helpful message
  */
 export async function fetchGroqCompletion(params: ChatParams): Promise<Message> {
   const { 
@@ -90,12 +91,18 @@ export async function fetchGroqCompletion(params: ChatParams): Promise<Message> 
     includeImage = false
   } = params;
   
-  // Important: Always use the hardcoded API key directly, do not check storage
-  // This ensures all users share the same API key for simplicity
   const apiKey = GROQ_API_KEY;
   
+  // If API key is missing, return a helpful message instead of throwing an error
   if (!apiKey) {
-    throw new Error('GROQ API key is not configured');
+    console.warn('GROQ API key is not configured, returning fallback response');
+    
+    return {
+      id: Date.now().toString(),
+      role: "assistant",
+      content: "I'm sorry, but the AI tutoring feature is currently unavailable because the GROQ API key is not configured. This is a demo version of SATez with limited functionality. Please contact the app administrator to set up the AI tutoring feature.",
+      timestamp: Date.now()
+    };
   }
   
   // Use image model if we're including an image
@@ -134,7 +141,7 @@ export async function fetchGroqCompletion(params: ChatParams): Promise<Message> 
   }));
 
   try {
-    console.log('Using hardcoded GROQ API key');
+    console.log('Using GROQ API key');
     console.log(`Using model: ${selectedModel}${includeImage ? ' (with image support)' : ''}`);
     
     const response = await fetch(GROQ_API_URL, {
@@ -158,7 +165,14 @@ export async function fetchGroqCompletion(params: ChatParams): Promise<Message> 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`GROQ API Error: Status ${response.status}, Response:`, errorText);
-      throw new Error(`GROQ API Error (${response.status}): ${errorText}`);
+      
+      // Return a user-friendly error message instead of throwing
+      return {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: `I'm sorry, but I encountered an issue connecting to the AI service. This could be due to network issues or API limits. Please try again later.`,
+        timestamp: Date.now()
+      };
     }
 
     const data = await response.json();
@@ -176,7 +190,14 @@ export async function fetchGroqCompletion(params: ChatParams): Promise<Message> 
     return responseMessage;
   } catch (error) {
     console.error("GROQ API call failed:", error);
-    throw error;
+    
+    // Return a user-friendly error message instead of throwing
+    return {
+      id: Date.now().toString(),
+      role: "assistant",
+      content: `I'm sorry, but I encountered an error. This could be due to network issues or server problems. Please try again later.`,
+      timestamp: Date.now()
+    };
   }
 }
 

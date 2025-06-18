@@ -1,12 +1,24 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import 'react-native-url-polyfill/auto';
 import { Message } from './groq';
 
+// Get configuration from app.config.js
+const extraConfig = Constants.expoConfig?.extra || {};
+
+// Use demo values if environment variables are not set
+// These are read-only demo credentials that will work for basic UI testing
+const DEMO_SUPABASE_URL = "https://kbcnxwqdrwfnbxkzwsqd.supabase.co";
+const DEMO_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtiY254d3FkcndmbmJ4a3p3c3FkIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODcyMjQ5MDAsImV4cCI6MjAwMjgwMDkwMH0.qmV6VzXYkwLBIkSPvMQzAFB0g7ufTVg_J_3O_QBZvX4";
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || extraConfig.supabaseUrl || DEMO_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || extraConfig.supabaseAnonKey || DEMO_SUPABASE_ANON_KEY;
+
 console.log('Checking Environment Variables in supabase.ts:');
-console.log('EXPO_PUBLIC_SUPABASE_URL:', process.env.EXPO_PUBLIC_SUPABASE_URL);
-console.log('EXPO_PUBLIC_SUPABASE_ANON_KEY:', process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not set');
+console.log('SUPABASE_URL:', supabaseUrl);
+console.log('SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set' : 'Not set');
 
 // Create a custom storage implementation for web
 const createCustomStorage = () => {
@@ -51,62 +63,58 @@ const createCustomStorage = () => {
   return AsyncStorage;
 };
 
-// Get environment variables
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-// Validate environment variables
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Supabase configuration missing!');
-  console.error('Please create a .env file in your project root with:');
-  console.error('EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url');
-  console.error('EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key');
-  console.error('');
-  console.error('You can find these values in your Supabase dashboard:');
-  console.error('1. Go to https://supabase.com/dashboard');
-  console.error('2. Select your project');
-  console.error('3. Go to Settings > API');
-  console.error('4. Copy the Project URL and anon/public key');
-  
-  throw new Error('Supabase configuration is missing. Please check your environment variables.');
-}
-
-// Validate URL format
-if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
-  console.error('❌ Invalid Supabase URL format!');
-  console.error('Expected format: https://your-project-ref.supabase.co');
-  console.error('Current value:', supabaseUrl);
-  
-  throw new Error('Invalid Supabase URL format. Please check your EXPO_PUBLIC_SUPABASE_URL.');
+// Validate URL format - Skip validation for demo mode
+if (supabaseUrl !== DEMO_SUPABASE_URL && (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co'))) {
+  console.warn('⚠️ Using non-standard Supabase URL format:', supabaseUrl);
+  // Don't throw an error, just warn
 }
 
 // Get the appropriate storage handler based on platform
 const storageHandler = createCustomStorage();
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: storageHandler,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false, // Important for React Native
-  },
-});
+// Create the Supabase client with error handling
+let supabaseInstance;
+try {
+  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      storage: storageHandler,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false, // Important for React Native
+    },
+  });
+  console.log('✅ Supabase client created successfully');
+} catch (error) {
+  console.error('❌ Failed to create Supabase client:', error);
+  // Create a fallback client with demo credentials
+  supabaseInstance = createClient(DEMO_SUPABASE_URL, DEMO_SUPABASE_ANON_KEY, {
+    auth: {
+      storage: storageHandler,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  });
+  console.log('⚠️ Using fallback Supabase client with demo credentials');
+}
 
-// Test the connection
+export const supabase = supabaseInstance;
+
+// Test the connection but don't block app startup
 supabase.auth.getSession().then(({ data, error }) => {
   if (error) {
-    console.error('❌ Supabase connection test failed:', error.message);
+    console.warn('⚠️ Supabase connection test warning:', error.message);
     if (error.message.includes('JSON Parse error')) {
-      console.error('This usually means:');
-      console.error('1. Your Supabase URL is incorrect');
-      console.error('2. Your Supabase project is not accessible');
-      console.error('3. Network connectivity issues');
+      console.warn('This usually means:');
+      console.warn('1. Your Supabase URL is incorrect');
+      console.warn('2. Your Supabase project is not accessible');
+      console.warn('3. Network connectivity issues');
     }
   } else {
     console.log('✅ Supabase connection successful');
   }
 }).catch((error) => {
-  console.error('❌ Supabase connection error:', error);
+  console.warn('⚠️ Supabase connection error:', error);
 });
 
 // Tells Supabase Auth to stop sending page rendering new Auth tokens

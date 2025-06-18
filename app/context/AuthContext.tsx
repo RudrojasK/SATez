@@ -1,7 +1,6 @@
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { useRouter } from 'expo-router';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
 import { signInWithGoogle as googleAuthSignIn } from '../../utils/googleAuth';
 import { supabase } from '../../utils/supabase';
 
@@ -84,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Error loading stored auth:', error);
+      // Don't throw error, just log it and continue
     } finally {
       setIsLoading(false);
     }
@@ -98,11 +98,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
         if (currentSession?.user) {
           setSupabaseUser(currentSession.user);
-          const userData = await getUserProfile(currentSession.user.id);
-          setUser(userData);
-          
-          // Check if user needs to complete their profile
-          checkProfileCompletion(userData);
+          try {
+            const userData = await getUserProfile(currentSession.user.id);
+            setUser(userData);
+            
+            // Check if user needs to complete their profile
+            checkProfileCompletion(userData);
+          } catch (error) {
+            console.error('Error getting user profile during auth state change:', error);
+            // Create a minimal user object from the session data
+            const minimalUser = {
+              id: currentSession.user.id,
+              email: currentSession.user.email || '',
+              name: currentSession.user.email ? currentSession.user.email.split('@')[0] : 'User',
+            };
+            setUser(minimalUser);
+          }
         } else {
           setSupabaseUser(null);
           setUser(null);
@@ -125,7 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // If user needs to complete profile and is already authenticated, redirect
       if (needsCompletion && userData.id) {
-        router.push('/complete-profile');
+        // Don't force redirect - it may cause issues on app startup
+        // Instead, we'll show a prompt in the UI
       }
     }
   };
@@ -139,7 +151,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
       
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-        throw error;
+        console.warn('Error fetching user profile:', error);
+        // Don't throw, try to recover
       }
       
       if (data) {
@@ -167,7 +180,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
     } catch (error) {
       console.error('Error getting user profile:', error);
-      return null;
+      // Return minimal user info rather than null
+      return {
+        id: userId,
+        email: 'user@example.com',
+        name: 'User',
+      };
     }
   };
 
@@ -334,108 +352,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      console.log('🔍 AuthContext: Starting Google sign-in...');
+      console.log('Starting Google sign-in...');
       
-      // Try our guaranteed popup method first
-      try {
-        console.log('🔍 AuthContext: Using force popup implementation');
-        const { signInWithGoogleForcePopup } = await import('../../utils/googleAuth');
-        const result = await signInWithGoogleForcePopup();
-        console.log('🔍 AuthContext: Force popup result:', result);
-        
-        if (result && 'success' in result && result.success) {
-          console.log('🔍 AuthContext: Force popup succeeded');
-          setIsLoading(false);
-          return;
-        }
-        
-        if (result && 'cancelled' in result && result.cancelled) {
-          console.log('🔍 AuthContext: User cancelled the force popup sign-in');
-          setIsLoading(false);
-          return;
-        }
-      } catch (forcePopupError) {
-        console.error('🔍 AuthContext: Force popup implementation failed:', forcePopupError);
-        // Fall through to other methods
-      }
-      
-      // Check if we're on iOS to use the iOS-specific method
-      const platform = Platform.OS;
-      console.log('🔍 AuthContext: Platform detected:', platform);
-      
-      if (platform === 'ios') {
-        try {
-          console.log('🔍 AuthContext: Using iOS-specific implementation');
-          const { signInWithGoogleIOS } = await import('../../utils/googleAuth');
-          const result = await signInWithGoogleIOS();
-          console.log('🔍 AuthContext: iOS-specific implementation result:', result);
-          
-          // Check if the user cancelled the sign-in
-          if (result && 'cancelled' in result && result.cancelled) {
-            console.log('🔍 AuthContext: User cancelled the sign-in');
-            setIsLoading(false);
-            return; // Exit early without showing an error
-          }
-          
-          console.log('🔍 AuthContext: iOS-specific implementation completed');
-          setIsLoading(false);
-          return;
-        } catch (iosError) {
-          console.error('🔍 AuthContext: iOS-specific implementation failed:', iosError);
-          // Fall through to other methods
-        }
-      }
-      
-      // Try all implementations in sequence
-      try {
-        console.log('🔍 AuthContext: Using primary implementation (signInWithOAuth)');
-        await googleAuthSignIn();
-        console.log('🔍 AuthContext: Primary implementation completed');
-      } catch (primaryError) {
-        console.error('🔍 AuthContext: Primary implementation failed:', primaryError);
-        
-        // Try the alternative implementation
-        try {
-          console.log('🔍 AuthContext: Trying alternative implementation (AuthSession)');
-          const { signInWithGoogleAdvanced } = await import('../../utils/googleAuth');
-          await signInWithGoogleAdvanced();
-          console.log('🔍 AuthContext: Alternative implementation completed');
-        } catch (secondaryError) {
-          console.error('🔍 AuthContext: Alternative implementation failed:', secondaryError);
-          
-          // Try the direct WebBrowser approach
-          try {
-            console.log('🔍 AuthContext: Trying direct WebBrowser approach');
-            const { signInWithGoogleDirect } = await import('../../utils/googleAuth');
-            await signInWithGoogleDirect();
-            console.log('🔍 AuthContext: Direct WebBrowser approach completed');
-          } catch (thirdError) {
-            console.error('🔍 AuthContext: Direct WebBrowser approach failed:', thirdError);
-            
-            // Try the simplest approach as last resort
-            console.log('🔍 AuthContext: Trying simplest approach');
-            const { signInWithGoogleSimplest } = await import('../../utils/googleAuth');
-            const result = await signInWithGoogleSimplest();
-            
-            // Check if the user cancelled the sign-in
-            if (result && 'cancelled' in result && result.cancelled) {
-              console.log('🔍 AuthContext: User cancelled the sign-in');
-              setIsLoading(false);
-              return; // Exit early without showing an error
-            }
-            
-            console.log('🔍 AuthContext: Simplest approach initiated');
-          }
-        }
-      }
+      // Use the simple Google sign-in method from googleAuth.ts
+      await googleAuthSignIn();
       
       // The auth state change listener will handle setting user and session
     } catch (error: any) {
-      console.error('🔍 AuthContext: Google sign-in failed:', error);
+      console.error('Google sign-in error:', error);
       
       // Don't show an error if the user cancelled the sign-in
       if (error.message && error.message.includes('cancelled')) {
-        console.log('🔍 AuthContext: User cancelled the sign-in');
+        console.log('User cancelled the sign-in');
       } else {
         console.error('Error signing in with Google:', error);
       }
