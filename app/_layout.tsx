@@ -5,8 +5,18 @@ import * as SplashScreenModule from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View, useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PracticeDataProvider } from './context/PracticeDataContext';
+
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+// Ensure Reanimated is properly initialized
+if (typeof global.performance !== 'object') {
+  global.performance = {
+    now: () => Date.now(),
+  };
+}
 
 const AuthCheck = () => {
   const { session, isLoading } = useAuth();
@@ -64,18 +74,22 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <PracticeDataProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <AuthCheck />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </PracticeDataProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AuthProvider>
+          <PracticeDataProvider>
+            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <AuthCheck />
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+              </Stack>
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </PracticeDataProvider>
+        </AuthProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
 

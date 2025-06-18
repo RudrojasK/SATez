@@ -63,8 +63,7 @@ module.exports = {
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ],
-      "react-native-reanimated"
+      ]
     ],
     experiments: {
       typedRoutes: true

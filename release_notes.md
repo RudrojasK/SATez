@@ -1,9 +1,11 @@
-# SATez v1.0.4 Release
+# SATez v1.0.5 Release
 
 This release includes:
 
 - Fixed "SATez keeps stopping" crash issue
-- Improved error handling for better stability
+- Added proper Babel configuration for React Native Reanimated
+- Configured Hermes JavaScript engine for better performance
+- Fixed navigation package compatibility issues
 - Added graceful fallback for missing environment variables
 - Simplified Google Sign-In implementation
 - Demo mode that works without backend configuration
